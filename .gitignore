@@ -7,7 +7,7 @@ automacao/.perfil-blablacar/
 # Capturas temporárias da BlaBlaCar (dados pessoais de passageiros)
 blablacar-captura.html
 blablacar-passageiro.html
-viagem-blablacar.json
+viagem-blablacar*.json
 
 # Arquivos temporários de diagnóstico
 automacao/_*.js
