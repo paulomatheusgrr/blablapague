@@ -1,0 +1,16 @@
+{
+  "name": "blablacar",
+  "version": "1.0.0",
+  "description": "Página para deixar aberta num **tablet** durante a viagem. O passageiro toca na própria foto, aparece um **QR Code PIX** com o valor já preenchido para a sua conta, ele paga e a tela mostra **\"✓ Pago\"** com uma animação divertida. Também mostra a rota e as paradas.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

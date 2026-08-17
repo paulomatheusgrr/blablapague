@@ -1,0 +1,21 @@
+# Dependências (reinstala com "npm install")
+node_modules/
+
+# Perfil de navegador salvo pela automação (contém sessão/login)
+automacao/.perfil-blablacar/
+
+# Capturas temporárias da BlaBlaCar (dados pessoais de passageiros)
+blablacar-captura.html
+blablacar-passageiro.html
+viagem-blablacar.json
+
+# Arquivos temporários de diagnóstico
+automacao/_*.js
+automacao/_*.txt
+automacao/_*.html
+
+# Sistema operacional / editores
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.log

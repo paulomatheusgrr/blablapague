@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BlaBlaPague — Botão Mágico</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .wrap { max-width: 820px; margin: 0 auto; padding: 1.5rem clamp(1rem,4vw,2rem) 4rem; color: #fff; }
+    .voltar { color:#fff; text-decoration:none; font-weight:700; opacity:.9; }
+    .painel { background:#fff; color:var(--texto); border-radius:20px; padding:1.4rem; margin:1rem 0; box-shadow:var(--sombra); }
+    .painel h2 { margin:0 0 .8rem; }
+    ol { line-height:1.7; padding-left:1.2rem; }
+    .btnmagico {
+      display:inline-block; background:linear-gradient(135deg,#2a6df4,#8b5cf6); color:#fff;
+      font-weight:800; font-size:1.2rem; padding:1rem 1.6rem; border-radius:14px; text-decoration:none;
+      box-shadow:0 8px 20px rgba(42,109,244,.4); cursor:grab; user-select:none;
+    }
+    .alvo { display:inline-block; border:2px dashed #b9c3da; border-radius:12px; padding:.6rem 1rem; color:var(--texto-suave); margin-left:.5rem; font-weight:700; }
+    textarea { width:100%; height:110px; font-family:monospace; font-size:.72rem; border:1px solid #dde3ef; border-radius:10px; padding:.6rem; background:#f7f9fd; color:#33415c; }
+    .dica { background:#f2f6ff; border-radius:12px; padding:.8rem 1rem; color:#33415c; margin-top:.6rem; font-size:.92rem; }
+    code { background:#eef1f7; padding:.1rem .35rem; border-radius:6px; }
+    .aviso { background:#fff4e5; border:1px solid #ffd7a1; border-radius:12px; padding:.9rem 1rem; color:#8a5300; font-weight:600; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="voltar" href="index.html">← Voltar ao kiosk</a>
+    <h1>🪄 Botão Mágico da BlaBlaCar</h1>
+    <p>Captura os passageiros, a rota <b>e os valores</b> da sua viagem direto do seu navegador normal (sem robô controlado, sem bloqueio) e leva pro kiosk.</p>
+
+    <div class="painel">
+      <h2>1) Instale o botão (uma vez só)</h2>
+      <p>Deixe a <b>barra de favoritos</b> visível (Ctrl+Shift+B) e <b>arraste</b> o botão abaixo para ela:</p>
+      <p><a class="btnmagico" id="bm">🪄 Capturar viagem</a> <span class="alvo">⬅ arraste para a barra de favoritos</span></p>
+      <div class="dica">Não conseguiu arrastar? Crie um favorito qualquer, edite-o, e cole no campo <b>URL/Endereço</b> o texto abaixo:
+        <textarea id="codigo" readonly onclick="this.select()"></textarea>
+        <button class="btn btn-azul btn-sm" id="copiar">Copiar código</button>
+      </div>
+    </div>
+
+    <div class="painel">
+      <h2>2) Use antes de cada viagem</h2>
+      <ol>
+        <li>Abra a BlaBlaCar no navegador e <b>faça login</b> (normal, do seu jeito).</li>
+        <li>Entre no <b>“Resumo da viagem”</b> onde aparecem os passageiros.</li>
+        <li>Clique no favorito <b>🪄 Capturar viagem</b> e <b>aguarde alguns segundos</b>: ele abre cada passageiro em segundo plano para pegar os <b>valores</b> (uma telinha escura mostra o progresso).</li>
+        <li>No fim, baixa <code>viagem-blablacar.json</code> (e copia pra área de transferência).</li>
+        <li>Abra o <b>⚙️ Admin</b> do kiosk → <b>“Importar JSON”</b> → escolha o arquivo. Confira e <b>Salve</b>. 🎉</li>
+      </ol>
+      <div class="aviso">⚠️ Faça na página certa (o “Resumo da viagem”). Se algum valor não vier, o Admin deixa você digitar — e se a BlaBlaCar bloquear a leitura em segundo plano, me avise que a gente usa o modo por passageiro.</div>
+    </div>
+
+    <div class="painel">
+      <h2>Alternativa: sem instalar nada (Console)</h2>
+      <p>Na página da viagem, aperte <b>F12</b> → aba <b>Console</b> → cole o código de cima <b>sem</b> o <code>javascript:</code> do começo e Enter.</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Função que roda DENTRO da página da BlaBlaCar (sem comentários // aqui: o bookmarklet vira uma linha só)
+    async function capturarBlaBlaCar(){
+      try{
+        var origin=location.origin;
+        var reVal=/(\d+(?:[.,]\d{1,2})?)\s*R\$|R\$\s*(\d+(?:[.,]\d{1,2})?)/;
+        function parseValor(txt){var m=String(txt).match(reVal);return m?Number((m[1]||m[2]).replace(',','.')):null;}
+        function acharPreco(doc){var melhor=null;doc.querySelectorAll('body *').forEach(function(el){var t=(el.textContent||'').trim();if(reVal.test(t)&&t.length<20&&(melhor===null||t.length<melhor.length))melhor=t;});return melhor;}
+        var nomes=document.querySelectorAll('[data-testid="e2e-profile-name"]');
+        if(!nomes.length){alert('Nenhum passageiro encontrado nesta página. Abra o "Resumo da viagem" com a lista de passageiros e clique de novo.');return;}
+        var pass=[];
+        nomes.forEach(function(el,i){
+          var img=null,link=null,c=el;
+          while(c.parentElement){c=c.parentElement;if(!link&&c.tagName==='A'){var h=c.getAttribute('href')||'';if(/\/rides\/offer\/passenger\//.test(h))link=h;}if(!img){var m=c.querySelectorAll('img[src*="user-profile-picture"]');if(m.length)img=m[0];}if(link&&img)break;}
+          pass.push({id:'p'+(i+1),nome:el.textContent.trim(),foto:img?img.src:'',valor:null,status:'pendente',pagoEm:null,url:link});
+        });
+        var linhas=(document.body.innerText||'').split('\n').map(function(s){return s.trim();});
+        var paradas=[];
+        for(var i=0;i<linhas.length-1;i++){if(/^\d{1,2}:\d{2}$/.test(linhas[i])&&linhas[i+1]&&!/^\d/.test(linhas[i+1]))paradas.push({hora:linhas[i],nome:linhas[i+1]});}
+        var dataTxt='';document.querySelectorAll('h1,h2,h3').forEach(function(h){if(/\d{1,2} de /.test(h.textContent))dataTxt=h.textContent.trim();});
+        var meses={janeiro:1,fevereiro:2,'março':3,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
+        var hora=paradas.length?paradas[0].hora:'';var dataHora=(dataTxt+' '+hora).trim();
+        var mmd=dataTxt.toLowerCase().match(/(\d{1,2}) de ([a-zà-ú]+)/);
+        if(mmd&&meses[mmd[2]]){var y=new Date().getFullYear();dataHora=y+'-'+('0'+meses[mmd[2]]).slice(-2)+'-'+('0'+mmd[1]).slice(-2)+(hora?'T'+hora:'');}
+        var urls=pass.map(function(p){return p.url;});
+        if(urls.some(function(u){return !u;})){
+          var achados=[];var reU=/\/rides\/offer\/passenger\/[0-9a-f-]{36}\/\d+/g;var mu;var htmlAll=document.body.innerHTML;
+          while((mu=reU.exec(htmlAll)))achados.push(mu[0]);
+          achados=Array.from(new Set(achados)).sort(function(a,b){return (+a.split('/').pop())-(+b.split('/').pop());});
+          if(achados.length>=pass.length)urls=achados.slice(0,pass.length);
+          else{var mtid=htmlAll.match(/\/rides\/offer\/passenger\/([0-9a-f-]{36})\//);if(mtid)urls=pass.map(function(_p,i){return '/rides/offer/passenger/'+mtid[1]+'/'+i;});}
+        }
+        var over=document.createElement('div');over.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(6,12,32,.78);color:#fff;font:700 20px sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre-line;padding:2rem';over.textContent='Preparando...';document.body.appendChild(over);
+        function esperar(ms){return new Promise(function(r){setTimeout(r,ms);});}
+        function pegarValor(u){return new Promise(function(res){
+          var fr=document.createElement('iframe');fr.style.cssText='position:fixed;left:-99999px;top:0;width:1024px;height:820px;opacity:0';
+          var done=false;function fin(v){if(done)return;done=true;try{fr.remove();}catch(e){}res(v);}
+          fr.onload=function(){var t0=Date.now();(function poll(){var v=null;try{v=acharPreco(fr.contentDocument);}catch(e){return fin(null);}if(v!=null)return fin(parseValor(v));if(Date.now()-t0>8000)return fin(null);setTimeout(poll,400);})();};
+          setTimeout(function(){fin(null);},12000);
+          fr.src=u;document.body.appendChild(fr);
+        });}
+        var comValor=0;
+        for(var k=0;k<pass.length;k++){
+          over.textContent='Buscando valores... '+(k+1)+' de '+pass.length+'\n'+pass[k].nome;
+          if(urls[k]){var full=/^https?:/.test(urls[k])?urls[k]:origin+urls[k];var val=await pegarValor(full);if(val!=null){pass[k].valor=val;comValor++;}}
+          await esperar(1200);
+        }
+        try{over.remove();}catch(e){}
+        pass.forEach(function(p){delete p.url;});
+        var trip={origem:paradas.length?paradas[0].nome:'',destino:paradas.length?paradas[paradas.length-1].nome:'',dataHora:dataHora,paradas:paradas.map(function(x){return {nome:x.nome,foto:''};}),passageiros:pass};
+        var txt=JSON.stringify({trip:trip},null,2);
+        try{if(navigator.clipboard)navigator.clipboard.writeText(txt);}catch(e){}
+        var blob=new Blob([txt],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='viagem-blablacar.json';document.body.appendChild(a);a.click();a.remove();
+        alert('✅ '+pass.length+' passageiro(s) — '+comValor+' com valor:\n'+pass.map(function(p){return '• '+p.nome+': '+(p.valor!=null?'R$ '+p.valor:'(sem valor — ajuste no Admin)');}).join('\n')+'\n\nBaixei "viagem-blablacar.json". Importe no Admin (⚙️) › Importar JSON.');
+      }catch(e){alert('Erro ao capturar: '+e.message);}
+    }
+
+    // Monta o bookmarklet a partir do código-fonte da função (evita dor de escape)
+    var codigo = 'javascript:(' + capturarBlaBlaCar.toString().replace(/\s+/g,' ') + ')();';
+    document.getElementById('bm').setAttribute('href', codigo);
+    document.getElementById('codigo').value = codigo;
+
+    document.getElementById('copiar').addEventListener('click', function(){
+      var t=document.getElementById('codigo'); t.select();
+      (navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(mostra,function(){document.execCommand('copy');mostra();});
+    });
+    function mostra(){var el=document.getElementById('toast');el.textContent='Código copiado!';el.classList.add('show');setTimeout(function(){el.classList.remove('show');},2200);}
+  </script>
+</body>
+</html>

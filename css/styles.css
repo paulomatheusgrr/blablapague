@@ -1,0 +1,224 @@
+/* ==========================================================================
+   BlaBlaPague — kiosk de pagamento PIX (Modelo A)
+   Feito para tablet em modo paisagem, toque grande e leitura à distância.
+   ========================================================================== */
+:root {
+  --azul: #2a6df4;
+  --azul-esc: #1b4fd0;
+  --verde: #17b978;
+  --verde-esc: #0e9e64;
+  --fundo: #0e1836;
+  --fundo2: #14245a;
+  --card: #ffffff;
+  --texto: #0f1b3d;
+  --texto-suave: #5b6b8c;
+  --sombra: 0 12px 30px rgba(6, 16, 46, 0.28);
+  --raio: 22px;
+  font-size: clamp(15px, 1.6vw, 20px);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  color: var(--texto);
+  background: radial-gradient(1200px 700px at 15% -10%, #24408f 0%, transparent 60%),
+              radial-gradient(1200px 700px at 110% 10%, #123 0%, transparent 55%),
+              linear-gradient(160deg, var(--fundo) 0%, var(--fundo2) 100%);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* -------- Cabeçalho -------- */
+.topo {
+  padding: 2.2rem clamp(1rem, 4vw, 3rem) 0.6rem;
+  color: #fff;
+  text-align: center;
+}
+.topo h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.topo .wave { display: inline-block; animation: acena 2.2s ease-in-out infinite; transform-origin: 70% 70%; }
+@keyframes acena { 0%,60%,100%{transform:rotate(0)} 10%{transform:rotate(16deg)} 20%{transform:rotate(-8deg)} 30%{transform:rotate(14deg)} 40%{transform:rotate(-4deg)} 50%{transform:rotate(10deg)} }
+.topo p { margin: 0.4rem 0 0; font-size: clamp(1rem, 2.3vw, 1.4rem); opacity: 0.9; }
+
+.rota-banner {
+  margin: 1.1rem auto 0;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: #fff;
+  padding: 0.7rem 1.2rem;
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+  font-weight: 600;
+}
+.rota-banner .cidade { font-size: 1.1rem; }
+.rota-banner .seta { opacity: 0.8; }
+.rota-banner .quando { opacity: 0.85; font-weight: 500; }
+.rota-banner .valor { background: var(--verde); padding: 0.2rem 0.7rem; border-radius: 999px; }
+
+/* -------- Grade de passageiros -------- */
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: clamp(1rem, 2.5vw, 1.6rem);
+  padding: clamp(1.2rem, 4vw, 2.4rem);
+  max-width: 1300px;
+  margin: 0 auto;
+}
+.passageiro {
+  position: relative;
+  background: var(--card);
+  border-radius: var(--raio);
+  padding: 1.4rem 1rem 1.2rem;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: var(--sombra);
+  border: 3px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+.passageiro:not(.pago):hover { transform: translateY(-4px); border-color: var(--azul); }
+.passageiro:not(.pago):active { transform: scale(0.97); }
+.passageiro:not(.pago)::after {
+  content: 'toque aqui';
+  position: absolute; inset: auto 0 0.6rem 0;
+  font-size: 0.75rem; color: var(--azul); font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  opacity: 0; transition: opacity 0.2s;
+}
+.passageiro:not(.pago):hover::after { opacity: 0.8; }
+
+.avatar {
+  width: clamp(90px, 12vw, 128px);
+  height: clamp(90px, 12vw, 128px);
+  border-radius: 50%;
+  margin: 0 auto 0.8rem;
+  object-fit: cover;
+  display: grid; place-items: center;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+}
+.passageiro .nome { font-size: 1.25rem; font-weight: 700; margin: 0.2rem 0; }
+.passageiro .preco { color: var(--texto-suave); font-weight: 600; }
+
+/* Estado pago */
+.passageiro.pago { border-color: var(--verde); }
+.passageiro.pago .avatar { filter: saturate(0.6) brightness(0.95); }
+.passageiro.pago::before {
+  content: '✓ PAGO';
+  position: absolute; top: 0.7rem; right: 0.7rem;
+  background: var(--verde); color: #fff; font-weight: 800;
+  padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.8rem;
+  box-shadow: 0 4px 10px rgba(14,158,100,0.4);
+}
+.passageiro.pago { cursor: default; }
+
+/* -------- Rota / paradas -------- */
+.rota-sec {
+  max-width: 1300px; margin: 0 auto; padding: 0 clamp(1.2rem,4vw,2.4rem) 3rem;
+  color: #fff;
+}
+.rota-sec h2 { font-size: 1.3rem; opacity: 0.9; margin: 0 0 1rem; }
+.paradas { display: flex; gap: 0; overflow-x: auto; padding-bottom: 0.5rem; }
+.parada { min-width: 150px; text-align: center; position: relative; padding-top: 1.4rem; }
+.parada:not(:last-child)::after {
+  content: ''; position: absolute; top: 0.55rem; left: 50%; right: -50%;
+  height: 3px; background: rgba(255,255,255,0.3);
+}
+.parada .ponto {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 16px; height: 16px; border-radius: 50%; background: var(--verde);
+  border: 3px solid #fff; z-index: 1;
+}
+.parada .foto {
+  width: 70px; height: 70px; border-radius: 14px; margin: 0 auto 0.4rem;
+  object-fit: cover; display: grid; place-items: center; font-weight: 800; color: #fff;
+  background: rgba(255,255,255,0.15); font-size: 1.4rem;
+}
+.parada .rotulo { font-size: 0.9rem; opacity: 0.92; }
+
+/* -------- Modal de pagamento -------- */
+.modal-bg {
+  position: fixed; inset: 0; background: rgba(6,12,32,0.72);
+  display: none; align-items: center; justify-content: center; z-index: 50;
+  padding: 1rem; backdrop-filter: blur(3px);
+}
+.modal-bg.aberto { display: flex; }
+.modal {
+  background: #fff; border-radius: 26px; width: min(560px, 96vw);
+  max-height: 94vh; overflow-y: auto; box-shadow: var(--sombra);
+  animation: sobe 0.25s ease;
+}
+@keyframes sobe { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-top { display: flex; align-items: center; gap: 1rem; padding: 1.4rem 1.6rem; border-bottom: 1px solid #eef1f7; }
+.modal-top .avatar { width: 64px; height: 64px; margin: 0; font-size: 1.6rem; }
+.modal-top .nome { font-size: 1.4rem; font-weight: 800; }
+.modal-top .valor-big { margin-left: auto; font-size: 1.7rem; font-weight: 800; color: var(--verde-esc); }
+
+.qr-box { text-align: center; padding: 1.4rem 1.6rem 0.4rem; }
+.qr-box img, .qr-box canvas { width: min(300px, 70vw); height: auto; border-radius: 14px; }
+.qr-box .dica { color: var(--texto-suave); margin: 0.8rem 0 0; font-size: 0.95rem; }
+
+.copia { padding: 0 1.6rem; }
+.copia label { font-size: 0.8rem; color: var(--texto-suave); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.copia .linha { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+.copia input {
+  flex: 1; font-family: monospace; font-size: 0.8rem; padding: 0.7rem;
+  border: 1px solid #dde3ef; border-radius: 10px; background: #f7f9fd; color: #33415c;
+}
+.passos { margin: 1rem 1.6rem 0; padding: 0.8rem 1rem; background: #f2f6ff; border-radius: 12px; color: #33415c; font-size: 0.92rem; }
+.passos b { color: var(--azul-esc); }
+
+.modal-acoes { display: flex; gap: 0.8rem; padding: 1.4rem 1.6rem 1.6rem; }
+.aviso-pix { margin: 1rem 1.6rem 0; padding: 0.9rem 1rem; background: #fff4e5; border: 1px solid #ffd7a1; border-radius: 12px; color: #8a5300; font-weight: 600; }
+
+/* -------- Botões -------- */
+.btn { border: none; border-radius: 14px; padding: 0.9rem 1.2rem; font-size: 1.05rem; font-weight: 800; cursor: pointer; transition: transform 0.1s, filter 0.15s; }
+.btn:active { transform: scale(0.97); }
+.btn-verde { background: var(--verde); color: #fff; flex: 1; }
+.btn-verde:hover { filter: brightness(1.05); }
+.btn-cinza { background: #eef1f7; color: #33415c; }
+.btn-azul { background: var(--azul); color: #fff; }
+.btn-sm { padding: 0.7rem 0.9rem; font-size: 0.9rem; }
+
+/* -------- Botão admin discreto -------- */
+.admin-link {
+  position: fixed; bottom: 12px; right: 12px; z-index: 30;
+  background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.2);
+  width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+  text-decoration: none; font-size: 1.2rem; opacity: 0.5;
+}
+.admin-link:hover { opacity: 1; }
+
+/* -------- Toast -------- */
+.toast {
+  position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(120px);
+  background: #10233f; color: #fff; padding: 0.9rem 1.4rem; border-radius: 14px;
+  font-weight: 700; box-shadow: var(--sombra); z-index: 80; transition: transform 0.35s ease;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* -------- Overlay "pago" com confete -------- */
+#confete { position: fixed; inset: 0; pointer-events: none; z-index: 70; display: none; }
+#confete.on { display: block; }
+.pago-selo {
+  position: fixed; inset: 0; z-index: 71; display: none; align-items: center; justify-content: center; pointer-events: none;
+}
+.pago-selo.on { display: flex; }
+.pago-selo .check {
+  width: 160px; height: 160px; border-radius: 50%; background: var(--verde);
+  display: grid; place-items: center; color: #fff; font-size: 5rem; box-shadow: 0 20px 60px rgba(23,185,120,0.5);
+  animation: pop 0.5s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes pop { 0% { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }

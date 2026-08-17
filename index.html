@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>BlaBlaPague — Pagamento da viagem</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="topo">
+    <h1><span class="wave">👋</span> Olá! Quem é você?</h1>
+    <p>Toque na sua foto para pagar a viagem</p>
+    <div class="rota-banner" id="rotaBanner"></div>
+  </header>
+
+  <main class="grade" id="grade"><!-- passageiros --></main>
+
+  <section class="rota-sec" id="rotaSec" hidden>
+    <h2>🗺️ Nossa rota</h2>
+    <div class="paradas" id="paradas"></div>
+  </section>
+
+  <a class="admin-link" href="admin.html" title="Configurar (motorista)">⚙️</a>
+
+  <!-- Modal de pagamento -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-top">
+        <div class="avatar" id="mAvatar"></div>
+        <div>
+          <div class="nome" id="mNome"></div>
+          <div class="preco" style="color:var(--texto-suave)">Pagamento via PIX</div>
+        </div>
+        <div class="valor-big" id="mValor"></div>
+      </div>
+
+      <div id="mConteudo">
+        <div class="qr-box" id="qrBox">
+          <div id="qr"></div>
+          <p class="dica">Aponte a câmera do seu banco para o QR Code</p>
+        </div>
+        <div class="copia">
+          <label>PIX Copia e Cola</label>
+          <div class="linha">
+            <input id="mCopia" readonly />
+            <button class="btn btn-azul btn-sm" id="btnCopiar">Copiar</button>
+          </div>
+        </div>
+        <div class="passos">
+          <b>1.</b> Abra o app do seu banco &nbsp; <b>2.</b> Escolha <b>PIX › Ler QR Code</b> &nbsp; <b>3.</b> Confirme o valor
+        </div>
+      </div>
+
+      <div class="aviso-pix" id="avisoPix" hidden>
+        ⚠️ A chave PIX ainda não foi configurada. Toque em ⚙️ (canto inferior) para configurar no Admin.
+      </div>
+
+      <div class="modal-acoes">
+        <button class="btn btn-cinza" id="btnVoltar">Voltar</button>
+        <button class="btn btn-verde" id="btnPaguei">✅ Já paguei</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- animação de pagamento -->
+  <canvas id="confete"></canvas>
+  <div class="pago-selo" id="pagoSelo"><div class="check">✓</div></div>
+  <div class="toast" id="toast"></div>
+
+  <!-- Bibliotecas locais -->
+  <script src="js/qrcode.js"></script>
+  <script src="js/pix.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

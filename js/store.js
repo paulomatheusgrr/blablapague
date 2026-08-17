@@ -1,0 +1,93 @@
+/*
+ * store.js — Estado do app (configuração + viagem) salvo no localStorage do tablet.
+ * Funciona offline e sem servidor. Também exporta/importa JSON.
+ */
+(function (global) {
+  'use strict';
+
+  const CFG_KEY = 'blablacar_config';
+  const TRIP_KEY = 'blablacar_trip';
+
+  const defaultConfig = {
+    pixKey: '',                 // <- sua chave PIX (email, telefone, CPF ou aleatória)
+    merchantName: 'MOTORISTA',  // aparece no comprovante do passageiro
+    merchantCity: 'SAO PAULO',
+    valorPadrao: 25             // valor sugerido por passageiro (R$)
+  };
+
+  // Viagem de exemplo (sem fotos externas: usamos as iniciais como avatar)
+  const sampleTrip = {
+    origem: 'São Paulo, SP',
+    destino: 'Campinas, SP',
+    dataHora: '2026-08-17T14:00',
+    paradas: [
+      { nome: 'Rod. Tietê (SP)', foto: '' },
+      { nome: 'Pedágio Jundiaí', foto: '' },
+      { nome: 'Rod. Campinas', foto: '' }
+    ],
+    passageiros: [
+      { id: 'p1', nome: 'Ana Souza', foto: '', valor: 25, status: 'pendente', pagoEm: null },
+      { id: 'p2', nome: 'Bruno Lima', foto: '', valor: 25, status: 'pendente', pagoEm: null },
+      { id: 'p3', nome: 'Carla Dias', foto: '', valor: 25, status: 'pendente', pagoEm: null },
+      { id: 'p4', nome: 'Diego Rocha', foto: '', valor: 30, status: 'pendente', pagoEm: null }
+    ]
+  };
+
+  function read(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : structuredClone(fallback);
+    } catch (e) {
+      return structuredClone(fallback);
+    }
+  }
+  function write(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  const Store = {
+    getConfig() {
+      return Object.assign({}, defaultConfig, read(CFG_KEY, defaultConfig));
+    },
+    setConfig(cfg) {
+      write(CFG_KEY, Object.assign({}, defaultConfig, cfg));
+    },
+    getTrip() {
+      return read(TRIP_KEY, sampleTrip);
+    },
+    setTrip(trip) {
+      write(TRIP_KEY, trip);
+    },
+    // Marca um passageiro como pago (ou pendente) e persiste
+    setPassengerStatus(id, status) {
+      const trip = this.getTrip();
+      const p = (trip.passageiros || []).find((x) => x.id === id);
+      if (p) {
+        p.status = status;
+        p.pagoEm = status === 'pago' ? new Date().toISOString() : null;
+        this.setTrip(trip);
+      }
+      return trip;
+    },
+    // Zera os pagamentos para reutilizar numa próxima viagem
+    resetPayments() {
+      const trip = this.getTrip();
+      (trip.passageiros || []).forEach((p) => {
+        p.status = 'pendente';
+        p.pagoEm = null;
+      });
+      this.setTrip(trip);
+      return trip;
+    },
+    loadSample() {
+      const t = structuredClone(sampleTrip);
+      this.setTrip(t);
+      return t;
+    },
+    newId() {
+      return 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1000);
+    }
+  };
+
+  global.Store = Store;
+})(window);

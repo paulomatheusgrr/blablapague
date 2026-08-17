@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BlaBlaPague — Configuração</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    .wrap { max-width: 820px; margin: 0 auto; padding: 1.5rem clamp(1rem,4vw,2rem) 4rem; color: #fff; }
+    .wrap h1 { font-size: 1.8rem; }
+    .painel { background: #fff; color: var(--texto); border-radius: 20px; padding: 1.4rem 1.4rem; margin: 1rem 0; box-shadow: var(--sombra); }
+    .painel h2 { margin: 0 0 1rem; font-size: 1.2rem; }
+    .campo { margin-bottom: 0.9rem; }
+    .campo label { display: block; font-weight: 700; font-size: 0.85rem; color: var(--texto-suave); margin-bottom: 0.3rem; }
+    .campo input, .campo select { width: 100%; padding: 0.7rem 0.8rem; border: 1px solid #dde3ef; border-radius: 10px; font-size: 1rem; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+    .item { display: grid; grid-template-columns: 56px 1fr 90px 120px 40px; gap: 0.6rem; align-items: center; margin-bottom: 0.6rem; }
+    .item .mini { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 1.1rem; cursor: pointer; }
+    .item .paradaimg { border-radius: 12px; }
+    .item input[type=file] { display: none; }
+    .item .rm { background: #ffe4e6; color: #b91c1c; border: none; border-radius: 10px; height: 40px; font-size: 1.2rem; cursor: pointer; }
+    .barra { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.8rem; }
+    .voltar { color: #fff; text-decoration: none; font-weight: 700; opacity: 0.9; }
+    .hint { font-size: 0.82rem; color: var(--texto-suave); margin-top: -0.4rem; }
+    @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } .item { grid-template-columns: 48px 1fr 40px; } .item .valor, .item .filelbl { grid-column: 2; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="voltar" href="index.html">← Voltar ao kiosk</a>
+    <h1>⚙️ Configuração</h1>
+
+    <div class="painel">
+      <h2>💸 Recebimento (PIX)</h2>
+      <div class="campo">
+        <label>Sua chave PIX</label>
+        <input id="pixKey" placeholder="email, telefone, CPF ou chave aleatória" />
+        <p class="hint">Fica salva só neste dispositivo. Nunca é enviada para a internet.</p>
+      </div>
+      <div class="grid2">
+        <div class="campo"><label>Nome do recebedor (aparece no comprovante)</label><input id="merchantName" maxlength="25" /></div>
+        <div class="campo"><label>Cidade</label><input id="merchantCity" maxlength="15" /></div>
+      </div>
+      <div class="campo" style="max-width:200px"><label>Valor padrão (R$)</label><input id="valorPadrao" type="number" step="0.01" min="0" /></div>
+    </div>
+
+    <div class="painel">
+      <h2>🚗 Viagem</h2>
+      <div class="grid2">
+        <div class="campo"><label>Origem</label><input id="origem" /></div>
+        <div class="campo"><label>Destino</label><input id="destino" /></div>
+      </div>
+      <div class="campo" style="max-width:260px"><label>Data e hora</label><input id="dataHora" type="datetime-local" /></div>
+    </div>
+
+    <div class="painel">
+      <h2>🧑‍🤝‍🧑 Passageiros</h2>
+      <div id="passageiros"></div>
+      <div class="barra"><button class="btn btn-azul btn-sm" id="addPass">+ Adicionar passageiro</button></div>
+      <p class="hint">Toque no círculo colorido para escolher a foto do passageiro (opcional — sem foto mostramos as iniciais).</p>
+    </div>
+
+    <div class="painel">
+      <h2>📍 Paradas da rota</h2>
+      <div id="paradas"></div>
+      <div class="barra"><button class="btn btn-azul btn-sm" id="addParada">+ Adicionar parada</button></div>
+    </div>
+
+    <div class="barra">
+      <button class="btn btn-verde" id="salvar">💾 Salvar</button>
+      <button class="btn btn-cinza btn-sm" id="zerar">↺ Zerar pagamentos</button>
+      <button class="btn btn-cinza btn-sm" id="exemplo">Carregar exemplo</button>
+      <button class="btn btn-cinza btn-sm" id="exportar">Exportar JSON</button>
+      <button class="btn btn-cinza btn-sm" id="importarBtn">Importar JSON</button>
+      <input type="file" id="importar" accept="application/json" hidden />
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/store.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
