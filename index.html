@@ -20,6 +20,10 @@
     <div class="paradas" id="paradas"></div>
   </section>
 
+  <div class="avaliar-lembrete">
+    ⭐ Gostou da carona? Avalie com <b>5 estrelas</b> na BlaBlaCar — por lá, <b>4 estrelas já derruba a nota</b> do motorista. Se foi tudo bem, 5 ⭐ é o justo. Obrigado! 🙏
+  </div>
+
   <a class="admin-link" href="bookmarklet.html" title="Botão Mágico — importar da BlaBlaCar" style="right:64px">🪄</a>
   <a class="admin-link" href="admin.html" title="Configurar (motorista)">⚙️</a>
 
@@ -67,6 +71,18 @@
   <canvas id="confete"></canvas>
   <div class="pago-selo" id="pagoSelo"><div class="check">✓</div></div>
   <div class="toast" id="toast"></div>
+
+  <!-- Agradecimento + pedido de 5 estrelas (após o pagamento) -->
+  <div class="avaliar-bg" id="avaliarBg">
+    <div class="avaliar-card">
+      <div class="avaliar-emoji">🙌</div>
+      <h2 id="avaliarTitulo">Obrigado!</h2>
+      <div class="estrelas"><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span></div>
+      <p class="avaliar-forte">Se a viagem foi boa, avalie com <b>5 estrelas</b> na BlaBlaCar 💙</p>
+      <p class="avaliar-info">Uma dica importante: na BlaBlaCar, <b>4 estrelas já conta como nota baixa</b> e prejudica o motorista sem querer. <b>5 estrelas</b> é o justo por uma boa viagem — faz muita diferença pra mim!</p>
+      <button class="btn btn-verde" id="avaliarFechar">Fechar</button>
+    </div>
+  </div>
 
   <!-- Bibliotecas locais -->
   <script src="js/qrcode.js"></script>

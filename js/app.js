@@ -23,6 +23,20 @@
     if (foto) return `<img class="avatar" src="${foto}" alt="${nome}">`;
     return `<div class="avatar" style="background:${corDoNome(nome)}">${iniciais(nome)}</div>`;
   }
+  // Versão pequena (para o balão sobre a parada de destino)
+  function avatarMini(nome, foto) {
+    if (foto) return `<img class="mini-avatar" src="${foto}" alt="${nome}">`;
+    return `<div class="mini-avatar" style="background:${corDoNome(nome)}">${iniciais(nome)}</div>`;
+  }
+  // Normaliza nome de cidade para comparar (sem acento, minúsculo)
+  function normaliza(s) {
+    return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  }
+  // Compara destino do passageiro com o nome da parada (igual ou um contém o outro)
+  function mesmaCidade(a, b) {
+    const x = normaliza(a), y = normaliza(b);
+    return !!x && !!y && (x === y || x.indexOf(y) > -1 || y.indexOf(x) > -1);
+  }
   const brl = (v) => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
   function quando(iso) {
     if (!iso) return '';
@@ -72,12 +86,16 @@
       grade.innerHTML = '<p style="color:#fff;grid-column:1/-1;text-align:center;opacity:.8">Nenhum passageiro cadastrado. Toque em ⚙️ para adicionar.</p>';
       return;
     }
-    grade.innerHTML = lista.map((p) => `
+    grade.innerHTML = lista.map((p) => {
+      const trecho = [p.embarque ? `📍 ${p.embarque}` : '', p.destino ? `🏁 ${p.destino}` : ''].filter(Boolean).join(' → ');
+      return `
       <div class="passageiro ${p.status === 'pago' ? 'pago' : ''}" data-id="${p.id}">
         ${avatarHTML(p.nome, p.foto)}
         <div class="nome">${p.nome}</div>
         <div class="preco">${brl(p.valor != null ? p.valor : cfg.valorPadrao)}</div>
-      </div>`).join('');
+        ${trecho ? `<div class="destino-card">${trecho}</div>` : ''}
+      </div>`;
+    }).join('');
     grade.querySelectorAll('.passageiro').forEach((el) => {
       el.addEventListener('click', () => {
         const p = lista.find((x) => x.id === el.dataset.id);
@@ -91,12 +109,20 @@
     const paradas = trip.paradas || [];
     if (!paradas.length) { sec.hidden = true; return; }
     sec.hidden = false;
-    $('#paradas').innerHTML = paradas.map((p) => `
+    const lista = trip.passageiros || [];
+    $('#paradas').innerHTML = paradas.map((p) => {
+      const descem = lista.filter((x) => mesmaCidade(x.destino, p.nome));
+      const baloes = descem.length
+        ? `<div class="baloes">${descem.map((x) => `<div class="balao" title="${x.nome} desce em ${p.nome}">${avatarMini(x.nome, x.foto)}</div>`).join('')}</div>`
+        : '';
+      return `
       <div class="parada">
+        ${baloes}
         <span class="ponto"></span>
         ${p.foto ? `<img class="foto" src="${p.foto}" alt="">` : `<div class="foto">📍</div>`}
         <div class="rotulo">${p.nome || ''}</div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   // -------- Modal de pagamento --------
@@ -135,11 +161,30 @@
 
   function confirmarPagamento() {
     if (!atual) return;
+    const nome = atual.nome;
     trip = Store.setPassengerStatus(atual.id, 'pago');
     fecharModal();
     renderPassageiros();
     festa();
-    toast('Pagamento confirmado! Obrigado 🙌');
+    mostrarAvaliacao(nome);
+  }
+
+  // -------- Agradecimento + pedido de 5 estrelas --------
+  let avaliarShow, avaliarHide;
+  function mostrarAvaliacao(nome) {
+    clearTimeout(avaliarShow);
+    clearTimeout(avaliarHide);
+    const primeiro = nome ? String(nome).trim().split(/\s+/)[0] : '';
+    $('#avaliarTitulo').textContent = primeiro ? `Obrigado, ${primeiro}! 🙌` : 'Obrigado! 🙌';
+    const bg = $('#avaliarBg');
+    // aparece logo depois do selo de "pago" + confete
+    avaliarShow = setTimeout(() => bg.classList.add('aberto'), 900);
+    avaliarHide = setTimeout(() => bg.classList.remove('aberto'), 13000);
+  }
+  function fecharAvaliacao() {
+    clearTimeout(avaliarShow);
+    clearTimeout(avaliarHide);
+    $('#avaliarBg').classList.remove('aberto');
   }
 
   // -------- Copiar --------
@@ -198,11 +243,30 @@
   $('#btnPaguei').addEventListener('click', confirmarPagamento);
   $('#btnCopiar').addEventListener('click', copiar);
   $('#modalBg').addEventListener('click', (e) => { if (e.target.id === 'modalBg') fecharModal(); });
+  $('#avaliarFechar').addEventListener('click', fecharAvaliacao);
+  $('#avaliarBg').addEventListener('click', (e) => { if (e.target.id === 'avaliarBg') fecharAvaliacao(); });
   // Recarrega se a config/viagem mudar em outra aba (ex.: admin)
   window.addEventListener('storage', () => { trip = Store.getTrip(); cfg = Store.getConfig(); renderBanner(); renderPassageiros(); renderRota(); });
+
+  // -------- Manter a tela acesa (Wake Lock) --------
+  let wakeLock = null;
+  async function manterTelaAcesa() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch (e) { /* pode falhar se a aba não estiver visível; tentamos de novo */ }
+  }
+  // Reobtém o lock quando a aba volta a ficar visível (o SO libera ao esconder)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !wakeLock) manterTelaAcesa();
+  });
+  // Alguns navegadores só concedem após um gesto do usuário
+  document.addEventListener('click', () => { if (!wakeLock) manterTelaAcesa(); }, { once: false });
 
   // -------- Início --------
   renderBanner();
   renderPassageiros();
   renderRota();
+  manterTelaAcesa();
 })();

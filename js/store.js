@@ -12,7 +12,12 @@
     pixKey: '',                 // <- sua chave PIX (email, telefone, CPF ou aleatória)
     merchantName: 'MOTORISTA',  // aparece no comprovante do passageiro
     merchantCity: 'SAO PAULO',
-    valorPadrao: 25             // valor sugerido por passageiro (R$)
+    valorPadrao: 25,            // valor sugerido por passageiro (R$)
+    // Confirmação de viagem via n8n + Evolution API (WhatsApp)
+    n8nWebhookUrl: '',          // URL do webhook do seu n8n
+    carroModelo: '',            // ex.: Fiat Argo
+    carroCor: '',               // ex.: prata
+    carroPlaca: ''              // ex.: ABC1D23
   };
 
   // Viagem de exemplo (sem fotos externas: usamos as iniciais como avatar)
@@ -21,15 +26,16 @@
     destino: 'Campinas, SP',
     dataHora: '2026-08-17T14:00',
     paradas: [
-      { nome: 'Rod. Tietê (SP)', foto: '' },
-      { nome: 'Pedágio Jundiaí', foto: '' },
-      { nome: 'Rod. Campinas', foto: '' }
+      { nome: 'São Paulo', foto: '' },
+      { nome: 'Jundiaí', foto: '' },
+      { nome: 'Valinhos', foto: '' },
+      { nome: 'Campinas', foto: '' }
     ],
     passageiros: [
-      { id: 'p1', nome: 'Ana Souza', foto: '', valor: 25, status: 'pendente', pagoEm: null },
-      { id: 'p2', nome: 'Bruno Lima', foto: '', valor: 25, status: 'pendente', pagoEm: null },
-      { id: 'p3', nome: 'Carla Dias', foto: '', valor: 25, status: 'pendente', pagoEm: null },
-      { id: 'p4', nome: 'Diego Rocha', foto: '', valor: 30, status: 'pendente', pagoEm: null }
+      { id: 'p1', nome: 'Ana Souza', foto: '', valor: 25, embarque: 'São Paulo', destino: 'Jundiaí', telefone: '+55 11 99999-0001', status: 'pendente', pagoEm: null },
+      { id: 'p2', nome: 'Bruno Lima', foto: '', valor: 25, embarque: 'São Paulo', destino: 'Campinas', telefone: '+55 11 99999-0002', status: 'pendente', pagoEm: null },
+      { id: 'p3', nome: 'Carla Dias', foto: '', valor: 25, embarque: 'Jundiaí', destino: 'Campinas', telefone: '+55 11 99999-0003', status: 'pendente', pagoEm: null },
+      { id: 'p4', nome: 'Diego Rocha', foto: '', valor: 30, embarque: 'São Paulo', destino: 'Valinhos', telefone: '', status: 'pendente', pagoEm: null }
     ]
   };
 

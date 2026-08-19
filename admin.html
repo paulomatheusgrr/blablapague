@@ -14,15 +14,21 @@
     .campo label { display: block; font-weight: 700; font-size: 0.85rem; color: var(--texto-suave); margin-bottom: 0.3rem; }
     .campo input, .campo select { width: 100%; padding: 0.7rem 0.8rem; border: 1px solid #dde3ef; border-radius: 10px; font-size: 1rem; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
-    .item { display: grid; grid-template-columns: 56px 1fr 90px 120px 40px; gap: 0.6rem; align-items: center; margin-bottom: 0.6rem; }
-    .item .mini { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 1.1rem; cursor: pointer; }
+    .item { display: grid; grid-template-columns: 52px 1fr 34px; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; }
+    .item .mini { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 1.1rem; cursor: pointer; }
     .item .paradaimg { border-radius: 12px; }
-    .item input[type=file] { display: none; }
-    .item .rm { background: #ffe4e6; color: #b91c1c; border: none; border-radius: 10px; height: 40px; font-size: 1.2rem; cursor: pointer; }
+    .item input[type=file], .pcard input[type=file] { display: none; }
+    .item .rm, .pcard .rm { background: #ffe4e6; color: #b91c1c; border: none; border-radius: 10px; height: 40px; font-size: 1.2rem; cursor: pointer; }
+    /* Card de passageiro (2 linhas) */
+    .pcard { background: #f7f9fd; border: 1px solid #e6ebf5; border-radius: 12px; padding: 0.7rem; margin-bottom: 0.7rem; }
+    .pc-top { display: grid; grid-template-columns: 52px 1fr 92px 34px; gap: 0.5rem; align-items: center; }
+    .pc-bot { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 0.5rem; margin-top: 0.5rem; }
+    .pcard input { width: 100%; padding: 0.55rem 0.6rem; border: 1px solid #dde3ef; border-radius: 9px; font-size: 0.95rem; }
+    .pcard .mini { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff; font-size: 1.1rem; cursor: pointer; overflow: hidden; }
     .barra { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.8rem; }
     .voltar { color: #fff; text-decoration: none; font-weight: 700; opacity: 0.9; }
     .hint { font-size: 0.82rem; color: var(--texto-suave); margin-top: -0.4rem; }
-    @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } .item { grid-template-columns: 48px 1fr 40px; } .item .valor, .item .filelbl { grid-column: 2; } }
+    @media (max-width: 560px) { .grid2 { grid-template-columns: 1fr; } .pc-top { grid-template-columns: 48px 1fr 34px; } .pc-top .valor { grid-column: 2; } .pc-bot { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -58,13 +64,27 @@
       <h2>🧑‍🤝‍🧑 Passageiros</h2>
       <div id="passageiros"></div>
       <div class="barra"><button class="btn btn-azul btn-sm" id="addPass">+ Adicionar passageiro</button></div>
-      <p class="hint">Toque no círculo colorido para escolher a foto do passageiro (opcional — sem foto mostramos as iniciais).</p>
+      <p class="hint">Toque no círculo colorido para a foto (opcional). O <b>telefone</b> é usado para avisar no WhatsApp — o botão mágico já preenche, mas você pode ajustar.</p>
     </div>
 
     <div class="painel">
       <h2>📍 Paradas da rota</h2>
       <div id="paradas"></div>
       <div class="barra"><button class="btn btn-azul btn-sm" id="addParada">+ Adicionar parada</button></div>
+    </div>
+
+    <div class="painel">
+      <h2>🚗 Carro & confirmação por WhatsApp</h2>
+      <div class="grid2">
+        <div class="campo"><label>Modelo do carro</label><input id="carroModelo" placeholder="ex.: Fiat Argo" /></div>
+        <div class="campo"><label>Cor</label><input id="carroCor" placeholder="ex.: prata" /></div>
+      </div>
+      <div class="grid2">
+        <div class="campo"><label>Placa</label><input id="carroPlaca" placeholder="ex.: ABC1D23" /></div>
+        <div class="campo"><label>Webhook do n8n</label><input id="n8nWebhookUrl" placeholder="https://seu-n8n/webhook/confirmar-viagem" /></div>
+      </div>
+      <p class="hint">Ao confirmar, o app envia os dados ao n8n, que dispara o WhatsApp (Evolution API) para cada passageiro que tiver telefone.</p>
+      <div class="barra"><button class="btn btn-verde" id="confirmarViagem">📲 Confirmar viagem e avisar passageiros</button></div>
     </div>
 
     <div class="barra">
@@ -74,6 +94,22 @@
       <button class="btn btn-cinza btn-sm" id="exportar">Exportar JSON</button>
       <button class="btn btn-cinza btn-sm" id="importarBtn">Importar JSON</button>
       <input type="file" id="importar" accept="application/json" hidden />
+    </div>
+  </div>
+
+  <!-- Modal de confirmação de envio -->
+  <div class="modal-bg" id="confBg">
+    <div class="modal" style="width:min(560px,96vw)">
+      <div class="modal-top"><div class="nome" style="font-size:1.3rem">📲 Confirmar viagem</div></div>
+      <div style="padding:1rem 1.6rem" id="confCorpo"></div>
+      <div style="padding:0 1.6rem">
+        <label style="font-weight:700;font-size:.78rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px">Prévia da mensagem (1º passageiro)</label>
+        <pre id="confPreview" style="white-space:pre-wrap;background:#f2f6ff;border-radius:12px;padding:.9rem;font-size:.85rem;max-height:280px;overflow:auto;margin:.3rem 0 0"></pre>
+      </div>
+      <div class="modal-acoes">
+        <button class="btn btn-cinza" id="confCancelar">Cancelar</button>
+        <button class="btn btn-verde" id="confEnviar">Enviar agora</button>
+      </div>
     </div>
   </div>
 

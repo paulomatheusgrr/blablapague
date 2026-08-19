@@ -64,6 +64,8 @@
         var KEY='bbp_trip';
         var reVal=/(\d+(?:[.,]\d{1,2})?)\s*R\$|R\$\s*(\d+(?:[.,]\d{1,2})?)/;
         function parseValor(t){var m=String(t).match(reVal);return m?Number((m[1]||m[2]).replace(',','.')):null;}
+        function rotaDe(el){var c=el;for(var i=0;i<6&&c;i++){if((c.textContent||'').indexOf('→')>-1){var best=null;c.querySelectorAll('*').forEach(function(e){var t=(e.textContent||'').trim();if(t.indexOf('→')>-1&&t.length<70&&(best===null||t.length<best.length))best=t;});if(best){var parts=best.split('→');return {embarque:parts[0].split('\n').pop().split(',').pop().trim(), destino:parts[parts.length-1].split('\n')[0].trim()};}}c=c.parentElement;}return {embarque:'',destino:''};}
+        function telefoneDe(){var a=document.querySelector('a[href^="tel:"]');if(a)return a.getAttribute('href').replace('tel:','').trim();var txt=document.body.innerText||'';var m=txt.match(/\+?\s*55[\s().-]*\d{2}[\s().-]*\d{4,5}[\s().-]*\d{4}/)||txt.match(/\+?\d[\d\s().-]{9,14}\d/);return m?m[0].trim():'';}
         function faltando(trip){return trip.passageiros.filter(function(p){return p.valor==null;}).map(function(p){return p.nome;});}
         function baixar(trip){
           var txt=JSON.stringify({trip:trip},null,2);
@@ -85,6 +87,8 @@
           if(!alvo)alvo=trip.passageiros.filter(function(p){return p.valor==null;})[0];
           if(!alvo){baixar(trip);alert('Todos ja tinham valor. Baixei o arquivo de novo. 🎉');return;}
           alvo.valor=valor;
+          if(!alvo.destino||!alvo.embarque){var r=rotaDe(nomeEl);if(r.destino&&!alvo.destino)alvo.destino=r.destino;if(r.embarque&&!alvo.embarque)alvo.embarque=r.embarque;}
+          if(!alvo.telefone){var tel=telefoneDe();if(tel)alvo.telefone=tel;}
           localStorage.setItem(KEY,JSON.stringify(trip));
           var falta=faltando(trip);
           if(falta.length===0){baixar(trip);alert('✅ '+nome+': R$ '+valor+'\n\nTodos capturados ('+trip.passageiros.length+'/'+trip.passageiros.length+')! Baixei "viagem-blablacar.json". Importe no ⚙️ Admin › Importar JSON.');}
@@ -97,7 +101,8 @@
         var novos=[];
         nomes.forEach(function(el,i){
           var img=null,c=el;while(c.parentElement){c=c.parentElement;var m=c.querySelectorAll('img[src*="user-profile-picture"]');if(m.length){img=m[0];break;}}
-          novos.push({id:'p'+(i+1),nome:el.textContent.trim(),foto:img?img.src:'',valor:null,status:'pendente',pagoEm:null});
+          var r=rotaDe(el);
+          novos.push({id:'p'+(i+1),nome:el.textContent.trim(),foto:img?img.src:'',valor:null,embarque:r.embarque,destino:r.destino,telefone:'',status:'pendente',pagoEm:null});
         });
         var linhas=(document.body.innerText||'').split('\n').map(function(s){return s.trim();});
         var paradas=[];for(var i=0;i<linhas.length-1;i++){if(/^\d{1,2}:\d{2}$/.test(linhas[i])&&linhas[i+1]&&!/^\d/.test(linhas[i+1]))paradas.push({hora:linhas[i],nome:linhas[i+1]});}
@@ -107,7 +112,7 @@
         var mmd=dataTxt.toLowerCase().match(/(\d{1,2}) de ([a-zà-ú]+)/);
         if(mmd&&meses[mmd[2]]){var y=new Date().getFullYear();dataHora=y+'-'+('0'+meses[mmd[2]]).slice(-2)+'-'+('0'+mmd[1]).slice(-2)+(hora?'T'+hora:'');}
         var antigo=null;try{antigo=JSON.parse(localStorage.getItem(KEY));}catch(e){}
-        if(antigo&&antigo.passageiros){novos.forEach(function(p){var a=antigo.passageiros.filter(function(x){return x.nome.toLowerCase()===p.nome.toLowerCase();})[0];if(a&&a.valor!=null)p.valor=a.valor;});}
+        if(antigo&&antigo.passageiros){novos.forEach(function(p){var a=antigo.passageiros.filter(function(x){return x.nome.toLowerCase()===p.nome.toLowerCase();})[0];if(a){if(a.valor!=null)p.valor=a.valor;if(!p.destino&&a.destino)p.destino=a.destino;if(!p.embarque&&a.embarque)p.embarque=a.embarque;if(!p.telefone&&a.telefone)p.telefone=a.telefone;}});}
         var trip={origem:paradas.length?paradas[0].nome:'',destino:paradas.length?paradas[paradas.length-1].nome:'',dataHora:dataHora,paradas:paradas.map(function(x){return {nome:x.nome,foto:''};}),passageiros:novos};
         localStorage.setItem(KEY,JSON.stringify(trip));
         baixar(trip);

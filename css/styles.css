@@ -130,7 +130,7 @@ body {
   color: #fff;
 }
 .rota-sec h2 { font-size: 1.3rem; opacity: 0.9; margin: 0 0 1rem; }
-.paradas { display: flex; gap: 0; overflow-x: auto; padding-bottom: 0.5rem; }
+.paradas { display: flex; gap: 0; overflow-x: auto; padding-top: 3.6rem; padding-bottom: 0.5rem; }
 .parada { min-width: 150px; text-align: center; position: relative; padding-top: 1.4rem; }
 .parada:not(:last-child)::after {
   content: ''; position: absolute; top: 0.55rem; left: 50%; right: -50%;
@@ -147,6 +147,20 @@ body {
   background: rgba(255,255,255,0.15); font-size: 1.4rem;
 }
 .parada .rotulo { font-size: 0.9rem; opacity: 0.92; }
+
+/* Balões dos passageiros sobre a parada de destino */
+.baloes { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% - 0.2rem); display: flex; gap: 5px; z-index: 2; }
+.balao { position: relative; }
+.balao::after { content: ''; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #fff; }
+.mini-avatar {
+  width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); object-fit: cover;
+  display: grid; place-items: center; font-size: 0.85rem; font-weight: 800; color: #fff;
+}
+
+/* Destino do passageiro no card */
+.destino-card { margin-top: 0.35rem; font-size: 0.82rem; color: var(--azul-esc); font-weight: 700; }
+.passageiro.pago .destino-card { color: var(--verde-esc); }
 
 /* -------- Modal de pagamento -------- */
 .modal-bg {
@@ -222,3 +236,37 @@ body {
   animation: pop 0.5s cubic-bezier(.2,1.4,.4,1);
 }
 @keyframes pop { 0% { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+
+/* -------- Lembrete fixo de avaliação (na tela principal) -------- */
+.avaliar-lembrete {
+  max-width: 1000px; margin: 0 auto 2.4rem; padding: 0.9rem 1.4rem;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff; border-radius: 18px; text-align: center; font-weight: 600; line-height: 1.5;
+}
+.avaliar-lembrete b { color: #ffd766; }
+
+/* -------- Overlay de agradecimento + 5 estrelas (após pagar) -------- */
+.avaliar-bg {
+  position: fixed; inset: 0; background: rgba(6, 12, 32, 0.82);
+  display: none; align-items: center; justify-content: center; z-index: 90;
+  padding: 1rem; backdrop-filter: blur(4px);
+}
+.avaliar-bg.aberto { display: flex; animation: fade 0.25s; }
+.avaliar-card {
+  background: #fff; color: var(--texto); border-radius: 26px; width: min(520px, 96vw);
+  padding: 2rem 1.8rem; text-align: center; box-shadow: var(--sombra); animation: sobe 0.3s ease;
+}
+.avaliar-emoji { font-size: 3rem; }
+.avaliar-card h2 { margin: 0.3rem 0 0.5rem; font-size: 1.8rem; }
+.estrelas { font-size: 2.6rem; letter-spacing: 0.25rem; margin: 0.2rem 0 1.1rem; }
+.estrelas span { display: inline-block; animation: estrela 0.5s backwards; }
+.estrelas span:nth-child(1) { animation-delay: 0.05s; }
+.estrelas span:nth-child(2) { animation-delay: 0.15s; }
+.estrelas span:nth-child(3) { animation-delay: 0.25s; }
+.estrelas span:nth-child(4) { animation-delay: 0.35s; }
+.estrelas span:nth-child(5) { animation-delay: 0.45s; }
+@keyframes estrela { from { transform: scale(0) rotate(-30deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.avaliar-forte { font-size: 1.25rem; font-weight: 700; margin: 0.2rem 0 0.8rem; }
+.avaliar-info { color: var(--texto-suave); font-size: 1rem; line-height: 1.55; margin: 0 0 1.5rem; }
+.avaliar-card .btn { width: 100%; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
