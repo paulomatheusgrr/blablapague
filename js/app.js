@@ -264,9 +264,47 @@
   // Alguns navegadores só concedem após um gesto do usuário
   document.addEventListener('click', () => { if (!wakeLock) manterTelaAcesa(); }, { once: false });
 
+  // -------- Sincronização automática (E-mail → n8n → kiosk) --------
+  // Busca a viagem de um endpoint (n8n) e atualiza sozinho, preservando quem já pagou.
+  async function sincronizar() {
+    if (!cfg.viagemFeedUrl) return;
+    try {
+      const resp = await fetch(cfg.viagemFeedUrl, { cache: 'no-store' });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const nova = data && data.trip ? data.trip : data;
+      if (!nova || !Array.isArray(nova.passageiros)) return;
+
+      // Preserva "pago" só se for a MESMA viagem (mesma data/hora). Se a viagem
+      // mudou (ex.: da ida para a volta, ou outro dia), zera — todos pendentes de novo.
+      const local = Store.getTrip();
+      const mesmaViagem = !!(local && nova.dataHora && local.dataHora === nova.dataHora);
+      const pagos = {};
+      if (mesmaViagem) {
+        (local.passageiros || []).forEach((p) => { if (p.status === 'pago') pagos[(p.nome || '').toLowerCase()] = p.pagoEm || new Date().toISOString(); });
+      }
+      nova.passageiros.forEach((p, i) => {
+        if (!p.id) p.id = 'p' + (i + 1);
+        const k = (p.nome || '').toLowerCase();
+        if (pagos[k]) { p.status = 'pago'; p.pagoEm = pagos[k]; }
+        else { p.status = p.status || 'pendente'; p.pagoEm = p.pagoEm || null; }
+      });
+
+      if (JSON.stringify(nova) !== JSON.stringify(local)) {
+        Store.setTrip(nova);
+        trip = nova;
+        renderBanner();
+        renderPassageiros();
+        renderRota();
+      }
+    } catch (e) { /* offline/erro: mantém o que já está na tela */ }
+  }
+
   // -------- Início --------
   renderBanner();
   renderPassageiros();
   renderRota();
   manterTelaAcesa();
+  sincronizar();
+  setInterval(sincronizar, 30000); // a cada 30s
 })();

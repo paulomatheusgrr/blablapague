@@ -1,0 +1,117 @@
+{
+  "name": "Coleta blablacar — viagem atual (kiosk)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "coleta-blablacar-kiosk",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "coleta-blablacar-kiosk"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": true,
+        "simple": false,
+        "filters": {
+          "q": "from:hello@blablacar.com newer_than:14d"
+        },
+        "options": {}
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Gmail - ler e-mails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Remonta a próxima viagem a partir dos e-mails da BlaBlaCar.\nconst ORDEM = ['Botucatu', 'São Manuel', 'Lençóis Paulista', 'Agudos', 'Bauru']; // ordem da rota\nconst MESES = { janeiro:1, fevereiro:2, 'março':3, marco:3, abril:4, maio:5, junho:6, julho:7, agosto:8, setembro:9, outubro:10, novembro:11, dezembro:12 };\nconst norm = (s) => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();\nconst idxCidade = (c) => { const n = norm(c); let r = 99; ORDEM.forEach((o,i)=>{ const no=norm(o); if (no===n || no.includes(n) || n.includes(no)) r = i; }); return r; };\nconst corpo = (j) => j.text || j.textPlain || j.snippet || j.body || '';\n\nfunction parseRota(t) {\n  const linha = (t.split('\\n').find(l => /- SP,/.test(l))) || '';\n  const seg = linha.split('- SP,');\n  if (seg.length < 3) return { embarque:'', destino:'' };\n  return { embarque: (seg[1]||'').split(' - ')[0].trim(), destino: (seg[seg.length-1]||'').trim() };\n}\nfunction parseData(t) {\n  const p = (x) => String(x).padStart(2,'0');\n  let m = t.match(/(\\d{1,2}) de ([A-Za-zçÇ]+) de (\\d{4})(?:\\D+(\\d{1,2}):(\\d{2}))?/);\n  if (m && MESES[norm(m[2])]) { const dia = `${m[3]}-${p(MESES[norm(m[2])])}-${p(m[1])}`; return { dia, iso: dia + (m[4] ? `T${p(m[4])}:${p(m[5])}` : '') }; }\n  m = t.match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})/);\n  if (m) { const dia = `${m[3]}-${p(m[2])}-${p(m[1])}`; return { dia, iso: dia }; }\n  return { dia:'', iso:'' };\n}\n\nconst msgs = $input.all().map(i => i.json)\n  .sort((a,b) => new Date(a.date||a.internalDate||0) - new Date(b.date||b.internalDate||0));\n\nconst registros = [];\nconst chave = (r) => norm(r.nome)+'|'+r.dia+'|'+norm(r.embarque)+'|'+norm(r.destino);\nfor (const j of msgs) {\n  const t = corpo(j);\n  const reserva = /acabou de reservar um lugar/.test(t);\n  const cancel = /precisou cancelar/.test(t);\n  if (!reserva && !cancel) continue;\n  const nome = (reserva ? t.split('acabou de reservar')[0] : t.split('precisou cancelar')[0] || '').trim().replace(/\\s+/g,' ');\n  const { dia, iso } = parseData(t);\n  const { embarque, destino } = parseRota(t);\n  if (!nome || !dia || !embarque || !destino) continue;\n  const reg = { nome, dia, iso, embarque, destino };\n  for (let i = registros.length-1; i>=0; i--) if (chave(registros[i]) === chave(reg)) registros.splice(i,1);\n  if (reserva) {\n    const v = t.match(/R\\$\\s*([\\d.,]+)/);\n    reg.valor = v ? Number(v[1].replace(/\\./g,'').replace(',', '.')) : null;\n    registros.push(reg);\n  }\n}\n\nconst grupos = {};\nfor (const r of registros) (grupos[r.iso] = grupos[r.iso] || []).push(r);\n\nconst agora = Date.now();\nconst chaves = Object.keys(grupos).filter(Boolean).sort();\nlet escolhida = chaves.find(k => new Date(k).getTime() >= agora - 3*3600*1000) || chaves[chaves.length-1];\nconst pax = escolhida ? grupos[escolhida] : [];\n\nconst cidades = new Set();\npax.forEach(r => { cidades.add(r.embarque); cidades.add(r.destino); });\nconst forward = pax.length ? idxCidade(pax[0].embarque) <= idxCidade(pax[0].destino) : true;\nconst paradas = [...cidades].sort((a,b) => forward ? idxCidade(a)-idxCidade(b) : idxCidade(b)-idxCidade(a));\n\nconst trip = {\n  origem: paradas[0] || '',\n  destino: paradas[paradas.length-1] || '',\n  dataHora: escolhida || '',\n  paradas: paradas.map(nome => ({ nome, foto: '' })),\n  passageiros: pax.map((r,i) => ({ id:'p'+(i+1), nome:r.nome, foto:'', embarque:r.embarque, destino:r.destino, valor:r.valor, telefone:'', status:'pendente', pagoEm:null }))\n};\n\nreturn [{ json: { trip } }];"
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Remontar viagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "44444444-4444-4444-4444-444444444444",
+      "name": "Responder (JSON + CORS)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Gmail - ler e-mails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - ler e-mails": {
+      "main": [
+        [
+          {
+            "node": "Remontar viagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remontar viagem": {
+      "main": [
+        [
+          {
+            "node": "Responder (JSON + CORS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

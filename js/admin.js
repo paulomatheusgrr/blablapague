@@ -42,6 +42,7 @@
     $('#carroCor').value = cfg.carroCor || '';
     $('#carroPlaca').value = cfg.carroPlaca || '';
     $('#n8nWebhookUrl').value = cfg.n8nWebhookUrl || '';
+    $('#viagemFeedUrl').value = cfg.viagemFeedUrl || '';
     $('#origem').value = trip.origem || '';
     $('#destino').value = trip.destino || '';
     $('#dataHora').value = trip.dataHora || '';
@@ -119,7 +120,8 @@
       carroModelo: $('#carroModelo').value.trim(),
       carroCor: $('#carroCor').value.trim(),
       carroPlaca: $('#carroPlaca').value.trim(),
-      n8nWebhookUrl: $('#n8nWebhookUrl').value.trim()
+      n8nWebhookUrl: $('#n8nWebhookUrl').value.trim(),
+      viagemFeedUrl: $('#viagemFeedUrl').value.trim()
     };
     trip.origem = $('#origem').value.trim();
     trip.destino = $('#destino').value.trim();

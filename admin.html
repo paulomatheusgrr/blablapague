@@ -87,6 +87,15 @@
       <div class="barra"><button class="btn btn-verde" id="confirmarViagem">📲 Confirmar viagem e avisar passageiros</button></div>
     </div>
 
+    <div class="painel">
+      <h2>🔄 Sincronização automática (E-mail → n8n)</h2>
+      <div class="campo">
+        <label>Endpoint da viagem (n8n)</label>
+        <input id="viagemFeedUrl" placeholder="https://seu-n8n/webhook/viagem-atual" />
+        <p class="hint">O kiosk consulta este link a cada 30s e se atualiza sozinho (mantém quem já pagou). Deixe em branco para usar só os dados locais.</p>
+      </div>
+    </div>
+
     <div class="barra">
       <button class="btn btn-verde" id="salvar">💾 Salvar</button>
       <button class="btn btn-cinza btn-sm" id="zerar">↺ Zerar pagamentos</button>

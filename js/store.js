@@ -17,7 +17,9 @@
     n8nWebhookUrl: '',          // URL do webhook do seu n8n
     carroModelo: '',            // ex.: Fiat Argo
     carroCor: '',               // ex.: prata
-    carroPlaca: ''              // ex.: ABC1D23
+    carroPlaca: '',             // ex.: ABC1D23
+    // Sincronização automática: o kiosk lê a viagem deste endpoint (n8n) de tempos em tempos
+    viagemFeedUrl: ''           // URL (GET) que devolve a viagem em JSON
   };
 
   // Viagem de exemplo (sem fotos externas: usamos as iniciais como avatar)
