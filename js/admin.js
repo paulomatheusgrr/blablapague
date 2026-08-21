@@ -130,9 +130,19 @@
 
   function salvar() {
     coletarConfig();
-    Store.setConfig(cfg);
-    Store.setTrip(trip);
-    toast('Salvo! ✅ Já pode abrir o kiosk.');
+    try {
+      Store.setConfig(cfg);
+      Store.setTrip(trip);
+    } catch (e) {
+      toast('❌ Não consegui salvar (aba anônima ou memória cheia?): ' + e.message);
+      return;
+    }
+    // Confirma que persistiu de verdade (revela armazenamento bloqueado no celular)
+    if (Store.getConfig().viagemFeedUrl !== cfg.viagemFeedUrl) {
+      toast('⚠️ Não persistiu! Não use aba anônima e abra o app por um endereço (http), não como arquivo.');
+      return;
+    }
+    toast('Salvo! ✅ Endpoint gravado.');
   }
 
   let toastT;

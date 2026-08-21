@@ -68,9 +68,13 @@
   let trip = Store.getTrip();
   let cfg = Store.getConfig();
   let atual = null; // passageiro aberto no modal
+  // Mostra "Carregando…" só num aparelho novo (feed configurado e nada salvo ainda).
+  // Se já houver viagem salva de um sync anterior, mostra ela na hora.
+  let feedPendente = !!cfg.viagemFeedUrl && !localStorage.getItem('blablacar_trip');
 
   // -------- Render --------
   function renderBanner() {
+    if (feedPendente) { $('#rotaBanner').innerHTML = ''; return; }
     $('#rotaBanner').innerHTML =
       `<span class="cidade">${trip.origem || ''}</span>` +
       `<span class="seta">➜</span>` +
@@ -81,6 +85,10 @@
 
   function renderPassageiros() {
     const grade = $('#grade');
+    if (feedPendente) {
+      grade.innerHTML = '<p style="color:#fff;grid-column:1/-1;text-align:center;opacity:.85;font-size:1.25rem;padding:2.5rem">⏳ Carregando a viagem…</p>';
+      return;
+    }
     const lista = trip.passageiros || [];
     if (!lista.length) {
       grade.innerHTML = '<p style="color:#fff;grid-column:1/-1;text-align:center;opacity:.8">Nenhum passageiro cadastrado. Toque em ⚙️ para adicionar.</p>';
@@ -106,6 +114,7 @@
 
   function renderRota() {
     const sec = $('#rotaSec');
+    if (feedPendente) { sec.hidden = true; return; }
     const paradas = trip.paradas || [];
     if (!paradas.length) { sec.hidden = true; return; }
     sec.hidden = false;
@@ -269,7 +278,10 @@
   async function sincronizar() {
     if (!cfg.viagemFeedUrl) return;
     try {
-      const resp = await fetch(cfg.viagemFeedUrl, { cache: 'no-store' });
+      // timeout de 45s: o n8n lê os e-mails e pode demorar ~30s; aborta se passar disso
+      const ctrl = new AbortController();
+      const prazo = setTimeout(() => ctrl.abort(), 45000);
+      const resp = await fetch(cfg.viagemFeedUrl, { cache: 'no-store', signal: ctrl.signal }).finally(() => clearTimeout(prazo));
       if (!resp.ok) return;
       const data = await resp.json();
       const nova = data && data.trip ? data.trip : data;
@@ -298,6 +310,10 @@
         renderRota();
       }
     } catch (e) { /* offline/erro: mantém o que já está na tela */ }
+    finally {
+      // Tira o "Carregando…" depois da 1ª tentativa (deu certo ou não)
+      if (feedPendente) { feedPendente = false; renderBanner(); renderPassageiros(); renderRota(); }
+    }
   }
 
   // -------- Início --------
@@ -306,5 +322,5 @@
   renderRota();
   manterTelaAcesa();
   sincronizar();
-  setInterval(sincronizar, 30000); // a cada 30s
+  setInterval(sincronizar, 300000); // a cada 5 min (a viagem muda pouco; alivia o n8n)
 })();

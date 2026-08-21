@@ -4,6 +4,9 @@ node_modules/
 # Perfil de navegador salvo pela automação (contém sessão/login)
 automacao/.perfil-blablacar/
 
+# Configuração real (contém dados pessoais, ex.: chave PIX). Use js/config.example.js como modelo.
+js/config.js
+
 # Capturas temporárias da BlaBlaCar (dados pessoais de passageiros)
 blablacar-captura.html
 blablacar-passageiro.html

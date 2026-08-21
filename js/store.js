@@ -18,8 +18,9 @@
     carroModelo: '',            // ex.: Fiat Argo
     carroCor: '',               // ex.: prata
     carroPlaca: '',             // ex.: ABC1D23
-    // Sincronização automática: o kiosk lê a viagem deste endpoint (n8n) de tempos em tempos
-    viagemFeedUrl: ''           // URL (GET) que devolve a viagem em JSON
+    // Sincronização automática: o kiosk lê a viagem deste endpoint (n8n).
+    // É sempre o mesmo, então já fica como padrão de fábrica:
+    viagemFeedUrl: 'https://n8n.safepointmarket.com.br/webhook/coleta-blablacar-kiosk'
   };
 
   // Viagem de exemplo (sem fotos externas: usamos as iniciais como avatar)
@@ -55,7 +56,14 @@
 
   const Store = {
     getConfig() {
-      return Object.assign({}, defaultConfig, read(CFG_KEY, defaultConfig));
+      // defaults do código  ←  config.js (window.BLABLA_CONFIG, vale p/ todo aparelho)  ←  o que foi salvo no Admin (por aparelho)
+      const base = Object.assign({}, defaultConfig, (typeof window !== 'undefined' && window.BLABLA_CONFIG) || {});
+      const urlPadrao = base.viagemFeedUrl;
+      const saved = read(CFG_KEY, null);
+      const merged = saved ? Object.assign({}, base, saved) : base;
+      // A URL do n8n é sempre a mesma: se vier vazia (config antiga salva), volta pro padrão
+      if (!merged.viagemFeedUrl) merged.viagemFeedUrl = urlPadrao;
+      return merged;
     },
     setConfig(cfg) {
       write(CFG_KEY, Object.assign({}, defaultConfig, cfg));
