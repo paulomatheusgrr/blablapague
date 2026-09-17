@@ -13,6 +13,10 @@ window.BLABLA_CONFIG = {
   merchantCity: 'Botucatu',
   valorPadrao: 23,            // valor sugerido quando o e-mail não trouxer o valor
 
+  // 📺 Zoom da tela — ajuste fino p/ a multimídia do carro (1 = normal):
+  //    0.85 = tudo menor (cabe mais); 1.15 = tudo maior. Ache o que preenche bem a tela.
+  zoom: 1,
+
   // 🔄 O endpoint do n8n já é padrão de fábrica (js/store.js). Só descomente
   //    a linha abaixo se um dia mudar o n8n:
   // viagemFeedUrl: 'https://n8n.safepointmarket.com.br/webhook/coleta-blablacar-kiosk',

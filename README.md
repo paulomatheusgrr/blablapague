@@ -68,36 +68,31 @@ Quer que o tablet marque "pago" **sozinho**, sem ninguém tocar em nada? Veja a
 
 ```
 Blablacar/
-├── index.html        Kiosk (tela dos passageiros)
-├── admin.html        Configuração (motorista)
-├── bookmarklet.html  "Botão Mágico" p/ importar a viagem da BlaBlaCar
-├── css/styles.css    Visual
+├── index.html            Kiosk (tela dos passageiros)
+├── admin.html            Configuração (motorista)
+├── css/styles.css        Visual
 ├── js/
-│   ├── pix.js        Gera o "copia e cola" PIX (BR Code/EMV + CRC16)
-│   ├── qrcode.js     Biblioteca de QR Code (MIT, Kazuhiko Arase)
-│   ├── store.js      Salva config e viagem no tablet
-│   ├── app.js        Lógica do kiosk
-│   └── admin.js      Lógica da configuração
-└── automacao/        Fase 2 (opcional): automação BlaBlaCar + PIX automático
+│   ├── config.js         Config do deploy (chave PIX, etc.) — fora do Git
+│   ├── config.example.js Modelo do config.js
+│   ├── pix.js            Gera o "copia e cola" PIX (BR Code/EMV + CRC16)
+│   ├── qrcode.js         Biblioteca de QR Code (MIT, Kazuhiko Arase)
+│   ├── store.js          Config + viagem (localStorage)
+│   ├── app.js            Lógica do kiosk (+ sincronização com o n8n)
+│   └── admin.js          Lógica da configuração
+└── automacao/            n8n (E-mail → viagem): workflow + parser + docs
 ```
 
 ---
 
-## 🪄 Importar a viagem da BlaBlaCar (Botão Mágico)
+## 🔄 Atualização automática (E-mail → n8n → kiosk)
 
-Em vez de digitar os passageiros na mão, use o **botão mágico**: ele lê a sua
-viagem direto da BlaBlaCar (no seu navegador normal, logado) e traz nome, foto,
-rota **e o valor de cada passageiro** para o kiosk. Abra **[`bookmarklet.html`](bookmarklet.html)** e siga o
-passo a passo (instalar uma vez → clicar em cada viagem → Importar JSON no Admin).
+Os passageiros aparecem no tablet **sozinhos**: um fluxo no **n8n** lê os e-mails
+da BlaBlaCar (reservas e cancelamentos), remonta a próxima viagem — com nome,
+foto, trajeto e valor — e o kiosk consulta esse endpoint e se atualiza (a cada
+5 min, ou na hora pelo botão **🔄** no canto da tela).
 
-> Não é um robô automático de fim a fim porque a BlaBlaCar bloqueia navegadores
-> automatizados (proteção anti-robô). O botão mágico contorna isso de forma
-> legítima: é você navegando + um clique. Detalhes em
-> [`automacao/LEIA-ME.md`](automacao/LEIA-ME.md).
+O parser e o workflow para importar no n8n estão em
+[`automacao/email-n8n.md`](automacao/email-n8n.md).
 
-## 🚀 Próximo passo opcional (Fase 2)
-
-- **Modelo B — confirmação automática**: cobrança PIX dinâmica via provedor
-  (Efí / Mercado Pago / Asaas) que avisa o app assim que o passageiro paga —
-  o tablet marca "pago" sozinho. Precisa de Node.js + backend. Ver
-  [`automacao/LEIA-ME.md`](automacao/LEIA-ME.md).
+> Confirmação por WhatsApp (avisar os passageiros) é opcional, documentada em
+> [`automacao/n8n-evolution.md`](automacao/n8n-evolution.md).

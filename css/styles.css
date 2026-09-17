@@ -214,6 +214,8 @@ body {
   text-decoration: none; font-size: 1.2rem; opacity: 0.5;
 }
 .admin-link:hover { opacity: 1; }
+.admin-link.girando { opacity: 1; animation: girar 1s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
 
 /* -------- Toast -------- */
 .toast {
@@ -270,3 +272,38 @@ body {
 .avaliar-info { color: var(--texto-suave); font-size: 1rem; line-height: 1.55; margin: 0 0 1.5rem; }
 .avaliar-card .btn { width: 100%; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ==========================================================================
+   Modo compacto — telas baixas em paisagem (multimídia de carro, ex.: BYD
+   Dolphin Mini). As barras do painel e do navegador comem altura, então
+   apertamos o cabeçalho/rodapé e priorizamos os cards dos passageiros.
+   ========================================================================== */
+@media (max-height: 720px) {
+  :root { font-size: clamp(12px, 1.35vw, 16px); }
+  .topo { padding: 0.6rem clamp(0.8rem, 3vw, 2rem) 0.3rem; }
+  .topo h1 { font-size: clamp(1.2rem, 3.2vw, 1.9rem); }
+  .topo p { font-size: 0.9rem; margin-top: 0.15rem; }
+  .rota-banner { margin-top: 0.5rem; padding: 0.4rem 0.9rem; gap: 0.5rem; border-radius: 14px; }
+  .grade { padding: 0.7rem clamp(0.7rem, 2.5vw, 1.4rem); gap: 0.7rem; }
+  .passageiro { padding: 0.7rem 0.5rem 0.6rem; border-radius: 16px; }
+  .avatar { width: clamp(58px, 8.5vw, 92px); height: clamp(58px, 8.5vw, 92px); margin-bottom: 0.4rem; font-size: clamp(1.4rem, 4vw, 2.2rem); }
+  .passageiro .nome { font-size: 1.05rem; margin: 0.1rem 0; }
+  .passageiro .preco { font-size: 0.9rem; }
+  .destino-card { font-size: 0.75rem; margin-top: 0.2rem; }
+  .rota-sec { padding-bottom: 1rem; }
+  .rota-sec h2 { font-size: 1rem; margin: 0 0 0.4rem; }
+  .paradas { padding-top: 2.8rem; }
+  .parada { min-width: 120px; padding-top: 1.1rem; }
+  .parada .foto { width: 52px; height: 52px; }
+  .mini-avatar { width: 32px; height: 32px; }
+  .avaliar-lembrete { margin: 0 auto 0.8rem; padding: 0.5rem 1rem; font-size: 0.82rem; border-radius: 12px; }
+}
+
+/* Telas MUITO baixas: some com a rota pra sobrar espaço aos passageiros */
+@media (max-height: 520px) {
+  .rota-sec { display: none; }
+  .topo { padding-top: 0.4rem; }
+  .topo h1 { font-size: 1.15rem; }
+  .topo p { display: none; }
+  .avaliar-lembrete { margin-bottom: 0.5rem; }
+}

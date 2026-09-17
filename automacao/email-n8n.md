@@ -5,8 +5,31 @@ Os passageiros aparecem no tablet **sozinhos**. Cada consulta do kiosk faz o n8n
 cancelamentos) e devolver. **Sem banco de dados** — o Gmail é a fonte da verdade.
 
 ```
-Kiosk (consulta a cada 30s)  ─►  n8n Webhook GET  ─►  Gmail (lê e-mails)  ─►  Code (parser)  ─►  Respond (JSON+CORS)
+Kiosk (consulta a cada 5 min)  ─►  n8n Webhook GET  ─►  Gmail (lê e-mails)  ─►  Code (parser)  ─►  Respond (JSON+CORS)
 ```
+
+## ⚡ Versão com cache (recomendada — resposta instantânea)
+
+Com o tempo, ler todos os e-mails a cada consulta ficou **lento** (~50s) e o kiosk
+chega a estourar o tempo limite ("parou de sincronizar"). A solução é o arquivo
+**`n8n-workflow-coleta-cache.json`**: um gatilho **a cada 3 min** lê os e-mails em
+segundo plano e guarda a viagem num cache; o **webhook responde na hora**, do cache,
+sem ler e-mails.
+
+- `Agenda (3 min) → Gmail → parser → salva no cache`
+- `Webhook (GET) → lê do cache → responde` (instantâneo)
+
+**Para trocar:**
+1. **Import from File** → `n8n-workflow-coleta-cache.json`.
+2. No nó **"Gmail - ler e-mails"**, selecione sua **credencial Google** (Simplify OFF).
+3. **Desative** o workflow antigo ("Coleta blablacar") e **ative** este — a URL do
+   webhook (mesmo path `coleta-blablacar-kiosk`) passa a servir do cache.
+4. Espere **~3 min** (o 1º ciclo popular o cache). Depois o kiosk carrega em ~1s.
+
+> O cache usa o *static data* do workflow (persiste entre execuções). Se o n8n
+> reiniciar, o cache repopula sozinho no próximo ciclo.
+
+---
 
 ## Formato real dos e-mails (de `hello@blablacar.com`)
 
@@ -141,12 +164,20 @@ for (const j of msgs) {
 // viagem (17:10, 17:30, 17:50...) ficam juntos, em vez de virar viagens separadas.
 const grupos = {};
 for (const r of registros) (grupos[r.grupo] = grupos[r.grupo] || []).push(r);
-const saidaDe = (g) => grupos[g].map(r => r.iso).sort()[0];
+const inicioDe = (g) => grupos[g].map(r => r.iso).sort()[0];   // 1º embarque (saída da viagem)
+const fimDe = (g) => grupos[g].map(r => r.iso).sort().pop();   // último embarque (~chegada)
 
-// Próxima viagem: a de saída mais próxima que ainda não passou (3h de tolerância)
+// Os horários da BlaBlaCar são de Brasília (UTC-3). Fixamos o fuso para NÃO depender
+// do fuso do servidor do n8n (senão a viagem troca na hora errada, ex.: no meio do trajeto).
+const ms = (iso) => new Date(iso + '-03:00').getTime();
+const BUFFER = 3 * 3600 * 1000; // mantém a viagem na tela até 3h DEPOIS do último embarque; só então troca
+
 const agora = Date.now();
-const chaves = Object.keys(grupos).filter(g => saidaDe(g)).sort((a,b) => saidaDe(a).localeCompare(saidaDe(b)));
-let escolhida = chaves.find(g => new Date(saidaDe(g)).getTime() >= agora - 3*3600*1000) || chaves[chaves.length-1];
+const ordenados = Object.keys(grupos).filter(g => inicioDe(g)).sort((a, b) => inicioDe(a).localeCompare(inicioDe(b)));
+let escolhida =
+  ordenados.find(g => agora >= ms(inicioDe(g)) && agora <= ms(fimDe(g)) + BUFFER) || // viagem em andamento (ou recém-terminada)
+  ordenados.find(g => ms(inicioDe(g)) > agora) ||                                    // senão, a próxima que ainda vai começar
+  ordenados[ordenados.length - 1];                                                   // senão, a última (todas já passaram)
 const pax = escolhida ? grupos[escolhida] : [];
 
 const forward = pax.length ? idxCidade(pax[0].embarque) <= idxCidade(pax[0].destino) : true;
@@ -156,7 +187,7 @@ const cidades = [...new Set(pax.flatMap(r => [r.embarque, r.destino]))]
 const trip = {
   origem: cidades[0] || '',
   destino: cidades[cidades.length-1] || '',
-  dataHora: escolhida ? saidaDe(escolhida) : '',
+  dataHora: escolhida ? inicioDe(escolhida) : '',
   paradas: cidades.map(nome => ({ nome, foto: '' })),
   passageiros: pax.map((r,i) => ({ id:'p'+(i+1), nome:r.nome, foto:r.foto||'', embarque:r.embarque, destino:r.destino, valor:r.valor, telefone:'', status:'pendente', pagoEm:null }))
 };

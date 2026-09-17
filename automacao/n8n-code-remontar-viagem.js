@@ -69,12 +69,20 @@ for (const j of msgs) {
 // viagem (17:10, 17:30, 17:50...) ficam juntos, em vez de virar viagens separadas.
 const grupos = {};
 for (const r of registros) (grupos[r.grupo] = grupos[r.grupo] || []).push(r);
-const saidaDe = (g) => grupos[g].map(r => r.iso).sort()[0];
+const inicioDe = (g) => grupos[g].map(r => r.iso).sort()[0];   // 1º embarque (saída da viagem)
+const fimDe = (g) => grupos[g].map(r => r.iso).sort().pop();   // último embarque (~chegada)
 
-// Próxima viagem: a de saída mais próxima que ainda não passou (3h de tolerância)
+// Os horários da BlaBlaCar são de Brasília (UTC-3). Fixamos o fuso para NÃO depender
+// do fuso do servidor do n8n (senão a viagem troca na hora errada, ex.: no meio do trajeto).
+const ms = (iso) => new Date(iso + '-03:00').getTime();
+const BUFFER = 3 * 3600 * 1000; // mantém a viagem na tela até 3h DEPOIS do último embarque; só então troca
+
 const agora = Date.now();
-const chaves = Object.keys(grupos).filter(g => saidaDe(g)).sort((a,b) => saidaDe(a).localeCompare(saidaDe(b)));
-let escolhida = chaves.find(g => new Date(saidaDe(g)).getTime() >= agora - 3*3600*1000) || chaves[chaves.length-1];
+const ordenados = Object.keys(grupos).filter(g => inicioDe(g)).sort((a, b) => inicioDe(a).localeCompare(inicioDe(b)));
+let escolhida =
+  ordenados.find(g => agora >= ms(inicioDe(g)) && agora <= ms(fimDe(g)) + BUFFER) || // viagem em andamento (ou recém-terminada)
+  ordenados.find(g => ms(inicioDe(g)) > agora) ||                                    // senão, a próxima que ainda vai começar
+  ordenados[ordenados.length - 1];                                                   // senão, a última (todas já passaram)
 const pax = escolhida ? grupos[escolhida] : [];
 
 const forward = pax.length ? idxCidade(pax[0].embarque) <= idxCidade(pax[0].destino) : true;
@@ -84,7 +92,7 @@ const cidades = [...new Set(pax.flatMap(r => [r.embarque, r.destino]))]
 const trip = {
   origem: cidades[0] || '',
   destino: cidades[cidades.length-1] || '',
-  dataHora: escolhida ? saidaDe(escolhida) : '',
+  dataHora: escolhida ? inicioDe(escolhida) : '',
   paradas: cidades.map(nome => ({ nome, foto: '' })),
   passageiros: pax.map((r,i) => ({ id:'p'+(i+1), nome:r.nome, foto:r.foto||'', embarque:r.embarque, destino:r.destino, valor:r.valor, telefone:'', status:'pendente', pagoEm:null }))
 };

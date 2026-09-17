@@ -1,0 +1,185 @@
+{
+  "name": "Coleta blablacar — cache (E-mail → n8n → kiosk)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 3
+            }
+          ]
+        }
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "name": "A cada 3 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "returnAll": true,
+        "simple": false,
+        "filters": {
+          "q": "from:hello@blablacar.com newer_than:14d"
+        },
+        "options": {}
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000002",
+      "name": "Gmail - ler e-mails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Remonta a próxima viagem a partir dos e-mails da BlaBlaCar.\nconst ORDEM = ['Botucatu', 'São Manuel', 'Lençóis Paulista', 'Agudos', 'Bauru']; // ordem da rota\nconst MESES = { janeiro:1, fevereiro:2, 'março':3, marco:3, abril:4, maio:5, junho:6, julho:7, agosto:8, setembro:9, outubro:10, novembro:11, dezembro:12 };\nconst norm = (s) => (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();\nconst idxCidade = (c) => { const n = norm(c); let r = 99; ORDEM.forEach((o,i)=>{ if (norm(o)===n) r = i; }); return r; };\nconst corpo = (j) => j.text || j.textPlain || j.snippet || j.body || '';\n\n// Trajeto pelas cidades conhecidas (robusto a paradas sem \"- SP\", tipo pontos/landmarks):\n// embarque = primeira cidade (mais à esquerda); destino = última (mais à direita)\nfunction parseRota(t) {\n  let melhor = '', qtd = 0;\n  for (const l of t.split('\\n')) {\n    const nl = norm(l);\n    const c = ORDEM.filter(city => nl.includes(norm(city))).length;\n    if (c > qtd) { qtd = c; melhor = l; }\n  }\n  const nl = norm(melhor);\n  let emb = '', embPos = 1e9, dest = '', destPos = -1;\n  ORDEM.forEach(city => {\n    const nc = norm(city);\n    const f = nl.indexOf(nc), g = nl.lastIndexOf(nc);\n    if (f > -1 && f < embPos) { embPos = f; emb = city; }\n    if (g > -1 && g > destPos) { destPos = g; dest = city; }\n  });\n  return { embarque: emb, destino: dest };\n}\nfunction parseData(t) {\n  const p = (x) => String(x).padStart(2,'0');\n  let m = t.match(/(\\d{1,2}) de ([A-Za-zçÇ]+) de (\\d{4})(?:\\D+(\\d{1,2}):(\\d{2}))?/);\n  if (m && MESES[norm(m[2])]) { const dia = `${m[3]}-${p(MESES[norm(m[2])])}-${p(m[1])}`; return { dia, iso: dia + (m[4] ? `T${p(m[4])}:${p(m[5])}` : '') }; }\n  m = t.match(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})/);\n  if (m) { const dia = `${m[3]}-${p(m[2])}-${p(m[1])}`; return { dia, iso: dia }; }\n  return { dia:'', iso:'' };\n}\n\n// Foto do passageiro (vem no HTML do e-mail; quem não tem cai nas iniciais)\nfunction parseFoto(j) {\n  const h = j.html || j.textAsHtml || '';\n  const m = h.match(/https:\\/\\/cdn\\.blablacar\\.com\\/user-profile-picture\\/[A-Za-z0-9]+\\/thumbnail_144x144\\.jpe?g/i);\n  return m ? m[0] : '';\n}\n\nconst msgs = $input.all().map(i => i.json)\n  .sort((a,b) => new Date(a.date||a.internalDate||0) - new Date(b.date||b.internalDate||0));\n\nconst registros = [];\nconst chave = (r) => norm(r.nome)+'|'+r.dia+'|'+norm(r.embarque)+'|'+norm(r.destino);\nfor (const j of msgs) {\n  const t = corpo(j);\n  const reserva = /acabou de reservar um lugar/.test(t);\n  const cancel = /precisou cancelar/.test(t);\n  if (!reserva && !cancel) continue;\n  const nome = (reserva ? t.split('acabou de reservar')[0] : t.split('precisou cancelar')[0] || '').trim().replace(/\\s+/g,' ');\n  const { dia, iso } = parseData(t);\n  const { embarque, destino } = parseRota(t);\n  if (!nome || !dia || !embarque || !destino) continue;\n  const dir = idxCidade(embarque) <= idxCidade(destino) ? 'F' : 'B';\n  const reg = { nome, dia, iso, embarque, destino, grupo: dia + '|' + dir };\n  for (let i = registros.length-1; i>=0; i--) if (chave(registros[i]) === chave(reg)) registros.splice(i,1);\n  if (reserva) {\n    const v = t.match(/R\\$\\s*([\\d.,]+)/);\n    reg.valor = v ? Number(v[1].replace(/\\./g,'').replace(',', '.')) : null;\n    reg.foto = parseFoto(j);\n    registros.push(reg);\n  }\n}\n\n// Agrupa por VIAGEM = dia + sentido (F/B). Assim todos os embarques da mesma\n// viagem (17:10, 17:30, 17:50...) ficam juntos, em vez de virar viagens separadas.\nconst grupos = {};\nfor (const r of registros) (grupos[r.grupo] = grupos[r.grupo] || []).push(r);\nconst inicioDe = (g) => grupos[g].map(r => r.iso).sort()[0];   // 1º embarque (saída da viagem)\nconst fimDe = (g) => grupos[g].map(r => r.iso).sort().pop();   // último embarque (~chegada)\n\n// Os horários da BlaBlaCar são de Brasília (UTC-3). Fixamos o fuso para NÃO depender\n// do fuso do servidor do n8n (senão a viagem troca na hora errada, ex.: no meio do trajeto).\nconst ms = (iso) => new Date(iso + '-03:00').getTime();\nconst BUFFER = 3 * 3600 * 1000; // mantém a viagem na tela até 3h DEPOIS do último embarque; só então troca\n\nconst agora = Date.now();\nconst ordenados = Object.keys(grupos).filter(g => inicioDe(g)).sort((a, b) => inicioDe(a).localeCompare(inicioDe(b)));\nlet escolhida =\n  ordenados.find(g => agora >= ms(inicioDe(g)) && agora <= ms(fimDe(g)) + BUFFER) || // viagem em andamento (ou recém-terminada)\n  ordenados.find(g => ms(inicioDe(g)) > agora) ||                                    // senão, a próxima que ainda vai começar\n  ordenados[ordenados.length - 1];                                                   // senão, a última (todas já passaram)\nconst pax = escolhida ? grupos[escolhida] : [];\n\nconst forward = pax.length ? idxCidade(pax[0].embarque) <= idxCidade(pax[0].destino) : true;\nconst cidades = [...new Set(pax.flatMap(r => [r.embarque, r.destino]))]\n  .sort((a,b) => forward ? idxCidade(a)-idxCidade(b) : idxCidade(b)-idxCidade(a));\n\nconst trip = {\n  origem: cidades[0] || '',\n  destino: cidades[cidades.length-1] || '',\n  dataHora: escolhida ? inicioDe(escolhida) : '',\n  paradas: cidades.map(nome => ({ nome, foto: '' })),\n  passageiros: pax.map((r,i) => ({ id:'p'+(i+1), nome:r.nome, foto:r.foto||'', embarque:r.embarque, destino:r.destino, valor:r.valor, telefone:'', status:'pendente', pagoEm:null }))\n};\n\nreturn [{ json: { trip } }];"
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000003",
+      "name": "Remontar viagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guarda a viagem no cache do workflow (persiste entre execuções).\nconst sd = $getWorkflowStaticData('global');\nif ($json && $json.trip) { sd.trip = $json.trip; sd.ts = Date.now(); }\nreturn [{ json: { ok: true, atualizadoEm: new Date(sd.ts || Date.now()).toISOString(), passageiros: ((sd.trip && sd.trip.passageiros) || []).length } }];"
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000004",
+      "name": "Salvar no cache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "coleta-blablacar-kiosk",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000005",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        120
+      ],
+      "webhookId": "coleta-blablacar-kiosk"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Devolve a viagem do cache, na hora (sem ler e-mails).\nconst sd = $getWorkflowStaticData('global');\nconst vazio = { origem: '', destino: '', dataHora: '', paradas: [], passageiros: [] };\nreturn [{ json: { trip: sd.trip || vazio } }];"
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000006",
+      "name": "Ler do cache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "aaaaaaaa-0000-0000-0000-000000000007",
+      "name": "Responder (JSON + CORS)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "A cada 3 min": {
+      "main": [
+        [
+          {
+            "node": "Gmail - ler e-mails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - ler e-mails": {
+      "main": [
+        [
+          {
+            "node": "Remontar viagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remontar viagem": {
+      "main": [
+        [
+          {
+            "node": "Salvar no cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Ler do cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler do cache": {
+      "main": [
+        [
+          {
+            "node": "Responder (JSON + CORS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

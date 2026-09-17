@@ -255,7 +255,22 @@
   $('#avaliarFechar').addEventListener('click', fecharAvaliacao);
   $('#avaliarBg').addEventListener('click', (e) => { if (e.target.id === 'avaliarBg') fecharAvaliacao(); });
   // Recarrega se a config/viagem mudar em outra aba (ex.: admin)
-  window.addEventListener('storage', () => { trip = Store.getTrip(); cfg = Store.getConfig(); renderBanner(); renderPassageiros(); renderRota(); });
+  window.addEventListener('storage', () => { trip = Store.getTrip(); cfg = Store.getConfig(); aplicarZoom(); renderBanner(); renderPassageiros(); renderRota(); });
+
+  // Zoom da tela (ajuste fino p/ a multimídia do carro) — vem do config
+  function aplicarZoom() { try { document.body.style.zoom = (cfg.zoom && cfg.zoom > 0) ? cfg.zoom : 1; } catch (e) {} }
+
+  // Botão "Atualizar agora" — força uma sincronização (dispara o n8n na hora)
+  $('#btnAtualizar').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const b = $('#btnAtualizar');
+    if (b.classList.contains('girando')) return; // já está atualizando
+    b.classList.add('girando');
+    toast('🔄 Buscando a viagem…');
+    try { await sincronizar(); } catch (err) {}
+    b.classList.remove('girando');
+    toast('Viagem atualizada ✅');
+  });
 
   // -------- Manter a tela acesa (Wake Lock) --------
   let wakeLock = null;
@@ -278,9 +293,10 @@
   async function sincronizar() {
     if (!cfg.viagemFeedUrl) return;
     try {
-      // timeout de 45s: o n8n lê os e-mails e pode demorar ~30s; aborta se passar disso
+      // timeout de 90s: o n8n lê os e-mails e ficou lento (~50s); damos folga.
+      // O certo é o cache no n8n (resposta instantânea) — ver automacao/email-n8n.md.
       const ctrl = new AbortController();
-      const prazo = setTimeout(() => ctrl.abort(), 45000);
+      const prazo = setTimeout(() => ctrl.abort(), 90000);
       const resp = await fetch(cfg.viagemFeedUrl, { cache: 'no-store', signal: ctrl.signal }).finally(() => clearTimeout(prazo));
       if (!resp.ok) return;
       const data = await resp.json();
@@ -317,10 +333,11 @@
   }
 
   // -------- Início --------
+  aplicarZoom();
   renderBanner();
   renderPassageiros();
   renderRota();
   manterTelaAcesa();
   sincronizar();
-  setInterval(sincronizar, 300000); // a cada 5 min (a viagem muda pouco; alivia o n8n)
+  setInterval(sincronizar, 1800000); // a cada 30 min (o botão 🔄 força na hora, se precisar)
 })();
