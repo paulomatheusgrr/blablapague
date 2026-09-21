@@ -79,8 +79,7 @@
       `<span class="cidade">${trip.origem || ''}</span>` +
       `<span class="seta">➜</span>` +
       `<span class="cidade">${trip.destino || ''}</span>` +
-      (trip.dataHora ? `<span class="quando">🕑 ${quando(trip.dataHora)}</span>` : '') +
-      `<span class="valor">${brl(cfg.valorPadrao)}</span>`;
+      (trip.dataHora ? `<span class="quando">🕑 ${quando(trip.dataHora)}</span>` : '');
   }
 
   function renderPassageiros() {
@@ -132,7 +131,98 @@
         <div class="rotulo">${p.nome || ''}</div>
       </div>`;
     }).join('');
+    atualizarCarro(); // o innerHTML acima removeu o carrinho — reposiciona
   }
+
+  // -------- Carro ao vivo na rota (geolocalização) --------
+  // Coordenadas (centro aprox.) das cidades da rota. Adicione outras se rodar novos trajetos.
+  const CIDADES = {
+    'botucatu': [-22.8858, -48.4450],
+    'sao manuel': [-22.7314, -48.5709],
+    'lencois paulista': [-22.5983, -48.8034],
+    'agudos': [-22.4686, -48.9870],
+    'bauru': [-22.3147, -49.0606]
+  };
+  const RAIO_CHEGADA = 4; // km: dentro disso, considera que "chegou" na cidade
+  let posCarro = null;    // {lat, lng} do GPS
+
+  function coordCidade(nome) { return CIDADES[normaliza(nome)] || null; }
+  function distKm(a, b) {
+    const R = 6371, toR = (x) => x * Math.PI / 180;
+    const dLat = toR(b[0] - a[0]), dLon = toR(b[1] - a[1]);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[0])) * Math.cos(toR(b[0])) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+
+  function iniciarGeo() {
+    if (cfg.rastrearCarro === false || !navigator.geolocation) return;
+    try {
+      navigator.geolocation.watchPosition(
+        (p) => { posCarro = { lat: p.coords.latitude, lng: p.coords.longitude }; atualizarCarro(); },
+        () => {}, // negado/erro: sem carrinho, a rota funciona normal
+        { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 }
+      );
+    } catch (e) {}
+  }
+
+  // Posiciona o carrinho na linha e pisca os passageiros da cidade atual
+  function atualizarCarro() {
+    if (!posCarro) return;
+    requestAnimationFrame(() => {
+    const box = $('#paradas');
+    const sec = $('#rotaSec');
+    if (!box || sec.hidden || !posCarro) return;
+    const paradas = trip.paradas || [];
+    const els = box.querySelectorAll('.parada');
+    const pts = paradas.map((p, i) => ({ i, nome: p.nome, coord: coordCidade(p.nome), el: els[i] }));
+    const comCoord = pts.filter((p) => p.coord && p.el);
+    if (comCoord.length < 2) return;
+    const car = [posCarro.lat, posCarro.lng];
+    comCoord.forEach((p) => { p.dist = distKm(car, p.coord); });
+    const perto = comCoord.reduce((a, b) => (b.dist < a.dist ? b : a));
+
+    const cx = (el) => el.offsetLeft + el.offsetWidth / 2; // x central de uma parada
+    let x = cx(perto.el);
+    const vizinhos = [pts[perto.i - 1], pts[perto.i + 1]].filter((v) => v && v.coord && v.el);
+    if (vizinhos.length) {
+      const viz = vizinhos.reduce((a, b) => (distKm(car, b.coord) < distKm(car, a.coord) ? b : a));
+      const dB = distKm(car, viz.coord);
+      const frac = perto.dist / (perto.dist + dB); // 0 = na "perto", 1 = no vizinho
+      x = cx(perto.el) + (cx(viz.el) - cx(perto.el)) * frac;
+    }
+
+    let carro = box.querySelector('#carroRota');
+    if (!carro) { carro = document.createElement('div'); carro.id = 'carroRota'; carro.className = 'carro-rota'; carro.textContent = '🚗'; box.appendChild(carro); }
+    const dot0 = box.querySelector('.parada .ponto');
+    carro.style.top = (dot0 ? dot0.parentElement.offsetTop + dot0.offsetTop + dot0.offsetHeight / 2 : 20) + 'px';
+    carro.style.left = x + 'px';
+
+    const cidadeAtual = perto.dist <= RAIO_CHEGADA ? perto.nome : null;
+    box.querySelectorAll('.ponto').forEach((d, i) => d.classList.toggle('chegou', !!cidadeAtual && i === perto.i));
+    marcarCidadeAtual(cidadeAtual);
+    });
+  }
+
+  // Pisca (e rotula) os passageiros que embarcam/descem na cidade em que o carro está
+  function marcarCidadeAtual(cidade) {
+    const lista = trip.passageiros || [];
+    document.querySelectorAll('#grade .passageiro').forEach((el) => {
+      const p = lista.find((x) => x.id === el.dataset.id);
+      if (!p) return;
+      const embarca = cidade && p.status !== 'pago' && mesmaCidade(p.embarque, cidade);
+      const desce = cidade && mesmaCidade(p.destino, cidade);
+      el.classList.toggle('piscando', !!(embarca || desce));
+      let badge = el.querySelector('.acao-cidade');
+      if (embarca || desce) {
+        if (!badge) { badge = document.createElement('div'); badge.className = 'acao-cidade'; el.appendChild(badge); }
+        badge.textContent = embarca ? '⬆ EMBARCA AQUI' : '⬇ DESCE AQUI';
+        badge.classList.toggle('desce', !!desce && !embarca);
+      } else if (badge) { badge.remove(); }
+    });
+  }
+
+  // Testar sem GPS: no console → simularCarro(-22.47, -48.99)
+  window.simularCarro = (lat, lng) => { posCarro = { lat, lng }; atualizarCarro(); };
 
   // -------- Modal de pagamento --------
   function abrirPagamento(p) {
@@ -338,6 +428,7 @@
   renderPassageiros();
   renderRota();
   manterTelaAcesa();
+  iniciarGeo();
   sincronizar();
   setInterval(sincronizar, 1800000); // a cada 30 min (o botão 🔄 força na hora, se precisar)
 })();

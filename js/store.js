@@ -23,7 +23,9 @@
     viagemFeedUrl: 'https://n8n.safepointmarket.com.br/webhook/coleta-blablacar-kiosk',
     // Zoom da tela (1 = normal). Ajuste fino para a multimídia do carro:
     // ex.: 0.85 = tudo menor (cabe mais), 1.15 = tudo maior.
-    zoom: 1
+    zoom: 1,
+    // Mostra o carrinho ao vivo na rota (usa a localização do navegador). false = desliga.
+    rastrearCarro: true
   };
 
   // Viagem de exemplo (sem fotos externas: usamos as iniciais como avatar)
