@@ -331,8 +331,14 @@ body {
   .topo h1 { font-size: 1.15rem; }
   .topo p { display: none; }
   .avaliar-lembrete { margin: 0 auto 0.4rem; padding: 0.35rem 0.8rem; font-size: 0.72rem; }
-  .grade { padding: 0.5rem clamp(0.6rem, 2vw, 1.2rem); gap: 0.5rem; }
-  .avatar { width: clamp(46px, 7vw, 70px); height: clamp(46px, 7vw, 70px); }
+  /* auto-fit + mínimo menor: cabem todos os passageiros numa linha só
+     (e ainda esticam pra preencher quando são poucos) */
+  .grade { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); padding: 0.4rem clamp(0.5rem, 1.6vw, 1rem); gap: 0.45rem; }
+  .passageiro { padding: 0.5rem 0.35rem 0.45rem; border-radius: 14px; border-width: 2px; }
+  .avatar { width: clamp(40px, 5.2vw, 58px); height: clamp(40px, 5.2vw, 58px); margin-bottom: 0.25rem; font-size: 1.2rem; }
+  .passageiro .nome { font-size: 0.92rem; margin: 0.05rem 0; }
+  .passageiro .preco { font-size: 0.8rem; }
+  .destino-card { font-size: 0.68rem; margin-top: 0.12rem; }
   /* Rota bem compacta, mas visível */
   .rota-sec { padding: 0 clamp(0.8rem, 3vw, 1.6rem) 0.4rem; }
   .rota-sec h2 { font-size: 0.82rem; margin: 0 0 0.2rem; }
