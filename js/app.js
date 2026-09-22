@@ -58,7 +58,7 @@
       qr.make();
       container.innerHTML = qr.createImgTag(6, 8); // cellSize, margem
       const img = container.querySelector('img');
-      if (img) { img.style.width = 'min(440px,84vw)'; img.style.height = 'auto'; img.style.borderRadius = '14px'; }
+      if (img) { img.style.width = 'min(520px, 88vw, 62vh)'; img.style.height = 'auto'; img.style.borderRadius = '14px'; }
     } catch (e) {
       container.innerHTML = '<p style="color:#b91c1c">Erro ao gerar QR: ' + e.message + '</p>';
     }
