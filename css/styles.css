@@ -388,16 +388,33 @@ body {
 }
 .parada .ponto.chegou { background: #ffd166; box-shadow: 0 0 0 5px rgba(255, 209, 102, 0.45); }
 
-/* Passageiro piscando quando o carro chega na cidade dele */
-.passageiro.piscando { border-color: var(--verde); animation: piscar 1.1s ease-in-out infinite; }
-@keyframes piscar {
+/* Passageiro piscando quando o carro chega na cidade dele.
+   Azul = embarca, vermelho = desce. */
+.passageiro.piscando { border-color: var(--azul); animation: piscarAzul 1.1s ease-in-out infinite; }
+.passageiro.piscando.piscando-desce { border-color: #e11d2e; animation-name: piscarVermelho; }
+@keyframes piscarAzul {
   0%, 100% { box-shadow: var(--sombra); }
-  50% { box-shadow: 0 0 0 6px rgba(23, 185, 120, 0.55), var(--sombra); }
+  50% { box-shadow: 0 0 0 6px rgba(42, 109, 244, 0.55), var(--sombra); }
+}
+@keyframes piscarVermelho {
+  0%, 100% { box-shadow: var(--sombra); }
+  50% { box-shadow: 0 0 0 6px rgba(225, 29, 46, 0.55), var(--sombra); }
 }
 .acao-cidade {
   position: absolute; top: 0.6rem; left: 0.6rem; z-index: 3;
-  background: var(--verde); color: #fff; font-weight: 800; font-size: 0.72rem;
+  background: var(--azul); color: #fff; font-weight: 800; font-size: 0.72rem;
   letter-spacing: 0.5px; padding: 0.22rem 0.55rem; border-radius: 999px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  animation: badgePulsa 1.1s ease-in-out infinite;
 }
 .acao-cidade.desce { background: #e11d2e; }
+/* Seta animada (sobe pra embarque, desce pra desembarque) */
+.acao-cidade .seta { display: inline-block; font-size: 0.9rem; animation: setaSobe 0.7s ease-in-out infinite; }
+.acao-cidade.desce .seta { animation-name: setaDesce; }
+@keyframes setaSobe { 0%, 100% { transform: translateY(1px); } 50% { transform: translateY(-3px); } }
+@keyframes setaDesce { 0%, 100% { transform: translateY(-1px); } 50% { transform: translateY(3px); } }
+@keyframes badgePulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) {
+  .acao-cidade, .acao-cidade .seta, .passageiro.piscando { animation: none; }
+}

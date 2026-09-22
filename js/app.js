@@ -109,6 +109,33 @@
         if (p && p.status !== 'pago') abrirPagamento(p);
       });
     });
+    equilibrarCards();
+  }
+
+  // Distribui os cards em linhas equilibradas (ex.: 6 → 3+3, 5 → 3+2),
+  // evitando "sobrar 1" na última linha. Em tela baixa (carro) mantém 1 linha.
+  function equilibrarCards() {
+    const grade = $('#grade');
+    const cards = [...grade.querySelectorAll('.passageiro')];
+    const n = cards.length;
+    cards.forEach((c) => { c.style.flexBasis = ''; c.style.flexGrow = ''; });
+    if (n < 2) return;
+    const cs = getComputedStyle(grade);
+    const gap = parseFloat(cs.columnGap) || 16;
+    const contW = grade.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+    const baixa = window.innerHeight <= 520;      // tela do carro → uma linha só
+    const minCard = baixa ? 120 : 210;            // largura mínima confortável do card
+    const cabem = Math.max(1, Math.floor((contW + gap) / (minCard + gap)));
+    let cols;
+    if (baixa) {
+      cols = Math.min(n, cabem);
+    } else {
+      const linhas = Math.ceil(n / cabem);        // nº de linhas necessárias
+      cols = Math.ceil(n / linhas);               // colunas equilibradas
+    }
+    cols = Math.max(1, Math.min(cols, n));
+    const basis = `calc((100% - ${(cols - 1) * gap}px) / ${cols})`;
+    cards.forEach((c) => { c.style.flexBasis = basis; c.style.flexGrow = '0'; });
   }
 
   function renderRota() {
@@ -214,10 +241,14 @@
       const embarca = cidade && p.status !== 'pago' && mesmaCidade(p.embarque, cidade);
       const desce = cidade && mesmaCidade(p.destino, cidade);
       el.classList.toggle('piscando', !!(embarca || desce));
+      el.classList.toggle('piscando-desce', !!desce && !embarca);
       let badge = el.querySelector('.acao-cidade');
       if (embarca || desce) {
         if (!badge) { badge = document.createElement('div'); badge.className = 'acao-cidade'; el.appendChild(badge); }
-        badge.textContent = embarca ? '⬆ EMBARCA AQUI' : '⬇ DESCE AQUI';
+        // Seta num <span> separado pra animar só ela (sobe/desce).
+        badge.innerHTML = embarca
+          ? '<span class="seta">⬆</span> EMBARCA AQUI'
+          : '<span class="seta">⬇</span> DESCE AQUI';
         badge.classList.toggle('desce', !!desce && !embarca);
       } else if (badge) { badge.remove(); }
     });
@@ -423,6 +454,13 @@
       if (feedPendente) { feedPendente = false; renderBanner(); renderPassageiros(); renderRota(); }
     }
   }
+
+  // Rebalanceia os cards e reposiciona o carrinho quando a tela muda de tamanho
+  let resizeT;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => { equilibrarCards(); atualizarCarro(); }, 150);
+  });
 
   // -------- Início --------
   aplicarZoom();
