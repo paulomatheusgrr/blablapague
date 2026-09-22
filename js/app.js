@@ -58,7 +58,7 @@
       qr.make();
       container.innerHTML = qr.createImgTag(6, 8); // cellSize, margem
       const img = container.querySelector('img');
-      if (img) { img.style.width = 'min(300px,70vw)'; img.style.height = 'auto'; img.style.borderRadius = '14px'; }
+      if (img) { img.style.width = 'min(440px,84vw)'; img.style.height = 'auto'; img.style.borderRadius = '14px'; }
     } catch (e) {
       container.innerHTML = '<p style="color:#b91c1c">Erro ao gerar QR: ' + e.message + '</p>';
     }
@@ -192,7 +192,9 @@
     }
 
     let carro = box.querySelector('#carroRota');
-    if (!carro) { carro = document.createElement('div'); carro.id = 'carroRota'; carro.className = 'carro-rota'; carro.textContent = '🚗'; box.appendChild(carro); }
+    // insertBefore(firstChild): mantém o carrinho como PRIMEIRO filho, pra que
+    // a última parada continue sendo :last-child (senão sobra linha após o destino).
+    if (!carro) { carro = document.createElement('div'); carro.id = 'carroRota'; carro.className = 'carro-rota'; carro.textContent = '🚗'; box.insertBefore(carro, box.firstChild); }
     const dot0 = box.querySelector('.parada .ponto');
     carro.style.top = (dot0 ? dot0.parentElement.offsetTop + dot0.offsetTop + dot0.offsetHeight / 2 : 20) + 'px';
     carro.style.left = x + 'px';
