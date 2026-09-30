@@ -45,12 +45,22 @@ const msgs = $input.all().map(i => i.json)
 
 const registros = [];
 const chave = (r) => norm(r.nome)+'|'+r.dia+'|'+norm(r.embarque)+'|'+norm(r.destino);
+// A BlaBlaCar manda o cancelamento em MAIS DE UM formato:
+//  - "Fulano precisou cancelar. O lugar está disponível novamente."
+//  - "Fulano cancelou. Você poderia confirmar o que aconteceu?"
+// Detectamos os dois (no corpo E no assunto), senão o passageiro não some.
+const RE_RESERVA = /acabou de reservar um lugar/i;
+const RE_CANCEL  = /precisou cancelar|\bcancelou\b/i;
 for (const j of msgs) {
   const t = corpo(j);
-  const reserva = /acabou de reservar um lugar/.test(t);
-  const cancel = /precisou cancelar/.test(t);
+  const assunto = norm(j.subject || (j.headers && j.headers.subject) || '');
+  const reserva = RE_RESERVA.test(t) || assunto.includes('novo passageiro');
+  const cancel  = !reserva && (RE_CANCEL.test(t) || assunto.includes('cancelamento'));
   if (!reserva && !cancel) continue;
-  const nome = (reserva ? t.split('acabou de reservar')[0] : t.split('precisou cancelar')[0] || '').trim().replace(/\s+/g,' ');
+  // Nome: vem no começo do corpo, antes do verbo (reservar/cancelar/cancelou).
+  // Remove um eventual "BlaBlaCar " do início (aparece quando só há o snippet).
+  const mNome = t.match(/(?:BlaBlaCar\s+)?([^\n]+?)\s+(?:acabou de reservar|precisou cancelar|cancelou)\b/i);
+  const nome = (mNome ? mNome[1] : '').replace(/^BlaBlaCar\s+/i, '').trim().replace(/\s+/g,' ');
   const { dia, iso } = parseData(t);
   const { embarque, destino } = parseRota(t);
   if (!nome || !dia || !embarque || !destino) continue;

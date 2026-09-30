@@ -395,6 +395,22 @@
     toast('Viagem atualizada ✅');
   });
 
+  // -------- Tela cheia (remove a barra do navegador da multimídia) --------
+  function emFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  async function toggleFullscreen() {
+    try {
+      if (!emFullscreen()) {
+        const el = document.documentElement;
+        await (el.requestFullscreen ? el.requestFullscreen() : el.webkitRequestFullscreen && el.webkitRequestFullscreen());
+      } else {
+        await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen && document.webkitExitFullscreen());
+      }
+    } catch (e) { /* alguns navegadores bloqueiam sem gesto; o botão ⛶ resolve */ }
+  }
+  $('#btnFullscreen').addEventListener('click', (e) => { e.preventDefault(); toggleFullscreen(); });
+  // Tenta entrar em tela cheia no 1º toque (precisa de gesto do usuário)
+  document.addEventListener('click', () => { if (!emFullscreen()) toggleFullscreen(); }, { once: true });
+
   // -------- Manter a tela acesa (Wake Lock) --------
   let wakeLock = null;
   async function manterTelaAcesa() {
