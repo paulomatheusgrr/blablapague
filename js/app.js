@@ -233,13 +233,17 @@
   }
 
   // Pisca (e rotula) os passageiros que embarcam/descem na cidade em que o carro está
+  let cidadeAnunciada = null; // evita repetir o aviso a cada leitura do GPS
   function marcarCidadeAtual(cidade) {
     const lista = trip.passageiros || [];
+    const embarcam = [], descem = [];
     document.querySelectorAll('#grade .passageiro').forEach((el) => {
       const p = lista.find((x) => x.id === el.dataset.id);
       if (!p) return;
       const embarca = cidade && p.status !== 'pago' && mesmaCidade(p.embarque, cidade);
       const desce = cidade && mesmaCidade(p.destino, cidade);
+      if (embarca) embarcam.push(p);
+      if (desce && !embarca) descem.push(p);
       el.classList.toggle('piscando', !!(embarca || desce));
       el.classList.toggle('piscando-desce', !!desce && !embarca);
       let badge = el.querySelector('.acao-cidade');
@@ -252,7 +256,67 @@
         badge.classList.toggle('desce', !!desce && !embarca);
       } else if (badge) { badge.remove(); }
     });
+
+    // Anúncio (som + popup) quando CHEGA numa cidade nova com gente p/ embarcar/descer
+    if (cidade && (embarcam.length || descem.length)) {
+      if (cidade !== cidadeAnunciada) { cidadeAnunciada = cidade; anunciarCidade(cidade, embarcam, descem); }
+    } else if (!cidade) {
+      cidadeAnunciada = null; // saiu da cidade: libera pra anunciar de novo se voltar
+    }
   }
+
+  // -------- Anúncio de embarque/desembarque (som de aeroporto + popup) --------
+  let audioCtx = null;
+  function desbloquearAudio() {
+    try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {}
+  }
+  // Chime clássico de aeroporto (3 notas sino "bim-bam-bom") sintetizado, sem arquivo.
+  function tocarChimeAeroporto() {
+    if (cfg.somEmbarque === false) return;
+    try {
+      desbloquearAudio();
+      if (!audioCtx) return;
+      const t0 = audioCtx.currentTime;
+      const notas = [ {f: 659.25, t: 0.00}, {f: 523.25, t: 0.45}, {f: 783.99, t: 0.90} ]; // E5, C5, G5
+      for (const n of notas) {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = n.f;
+        const start = t0 + n.t;
+        // envelope tipo sino: ataque rápido, cauda longa
+        g.gain.setValueAtTime(0.0001, start);
+        g.gain.exponentialRampToValueAtTime(0.5, start + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(start); osc.stop(start + 1.2);
+      }
+    } catch (e) {}
+  }
+  function anunciarCidade(cidade, embarcam, descem) {
+    tocarChimeAeroporto();
+    mostrarPopupAnuncio(cidade, embarcam, descem);
+  }
+  let anuncioTimer = null;
+  function mostrarPopupAnuncio(cidade, embarcam, descem) {
+    const bg = $('#anuncioBg'); if (!bg) return;
+    const bloco = (titulo, klass, gente) => gente.length ? `
+      <div class="anuncio-grupo ${klass}">
+        <div class="anuncio-titulo">${titulo}</div>
+        <div class="anuncio-gente">${gente.map((p) => `
+          <div class="anuncio-pessoa">${avatarMini(p.nome, p.foto)}<span>${p.nome}</span></div>`).join('')}</div>
+      </div>` : '';
+    $('#anuncioCidade').textContent = cidade;
+    $('#anuncioListas').innerHTML =
+      bloco('🛫 Embarque', 'emb', embarcam) +
+      bloco('🛬 Desembarque', 'des', descem);
+    bg.classList.add('aberto');
+    clearTimeout(anuncioTimer);
+    anuncioTimer = setTimeout(() => bg.classList.remove('aberto'), 9000); // some sozinho
+  }
+  $('#anuncioBg').addEventListener('click', () => { clearTimeout(anuncioTimer); $('#anuncioBg').classList.remove('aberto'); });
+  // Libera o áudio no 1º gesto do usuário (navegadores exigem)
+  document.addEventListener('click', desbloquearAudio, { once: true });
 
   // Testar sem GPS: no console → simularCarro(-22.47, -48.99)
   window.simularCarro = (lat, lng) => { posCarro = { lat, lng }; atualizarCarro(); };
