@@ -269,6 +269,8 @@
   let audioCtx = null;
   function desbloquearAudio() {
     try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {}
+    // Aquece as vozes do TTS (carregam de forma assíncrona) no 1º gesto.
+    try { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); } catch (e) {}
   }
   // Chime clássico de aeroporto (3 notas sino "bim-bam-bom") sintetizado, sem arquivo.
   function tocarChimeAeroporto() {
@@ -293,9 +295,37 @@
       }
     } catch (e) {}
   }
+  // Junta os primeiros nomes de forma natural: "Ana", "Ana e Bruno", "Ana, Bruno e Carla"
+  function nomesFalados(lista) {
+    const n = lista.map((p) => (p.nome || '').trim().split(/\s+/)[0]).filter(Boolean);
+    if (!n.length) return '';
+    if (n.length === 1) return n[0];
+    return n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1];
+  }
+  // Fala em voz alta (TTS do navegador). Requer voz pt-BR instalada no aparelho.
+  function falar(texto) {
+    if (cfg.falarNomes === false || !texto) return;
+    try {
+      if (!('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(texto);
+      u.lang = 'pt-BR';
+      u.rate = 0.98; u.pitch = 1; u.volume = 1;
+      const vozes = window.speechSynthesis.getVoices() || [];
+      const vbr = vozes.find((v) => /pt[-_]?BR/i.test(v.lang)) || vozes.find((v) => /^pt/i.test(v.lang));
+      if (vbr) u.voice = vbr;
+      window.speechSynthesis.cancel(); // evita fila acumulada
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
   function anunciarCidade(cidade, embarcam, descem) {
     tocarChimeAeroporto();
     mostrarPopupAnuncio(cidade, embarcam, descem);
+    // Fala os nomes DEPOIS do chime (~1.5s), pra não sobrepor o som.
+    const partes = [];
+    if (embarcam.length) partes.push('Embarque em ' + cidade + '. ' + nomesFalados(embarcam));
+    if (descem.length) partes.push('Desembarque em ' + cidade + '. ' + nomesFalados(descem));
+    const fala = partes.join('. ');
+    if (fala) setTimeout(() => falar(fala), 1500);
   }
   let anuncioTimer = null;
   function mostrarPopupAnuncio(cidade, embarcam, descem) {

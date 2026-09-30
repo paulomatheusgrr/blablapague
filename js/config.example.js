@@ -20,6 +20,11 @@ window.BLABLA_CONFIG = {
   // 🚗 Carrinho ao vivo na rota (localização do navegador). false = desliga.
   rastrearCarro: true,
 
+  // 🔔 Ao chegar na cidade: som de aeroporto (somEmbarque) e falar os nomes
+  //    de quem embarca/desembarca (falarNomes). false em qualquer um desliga.
+  somEmbarque: true,
+  falarNomes: true,
+
   // 🔄 O endpoint do n8n já é padrão de fábrica (js/store.js). Só descomente
   //    a linha abaixo se um dia mudar o n8n:
   // viagemFeedUrl: 'https://n8n.safepointmarket.com.br/webhook/coleta-blablacar-kiosk',
