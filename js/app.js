@@ -302,19 +302,38 @@
     if (n.length === 1) return n[0];
     return n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1];
   }
-  // Fala em voz alta (TTS do navegador). Requer voz pt-BR instalada no aparelho.
+  // Voz: no Android o Chrome só fala se o TTS tiver sido "destravado" por um
+  // toque. Como o anúncio vem do GPS (sem toque), destravamos no 1º toque
+  // falando algo mudo. Também guardamos referência da fala (o Android a
+  // descarta pelo GC se nada apontar pra ela) e damos resume() (bug de pausa).
+  let ttsDestravado = false;
+  let __utterRef = null;
+  function destravarVoz() {
+    if (ttsDestravado || cfg.falarNomes === false) return;
+    try {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.getVoices();
+      const warm = new SpeechSynthesisUtterance(' ');
+      warm.volume = 0; warm.lang = 'pt-BR';
+      __utterRef = warm;
+      window.speechSynthesis.speak(warm); // dentro do gesto → libera a sessão
+      ttsDestravado = true;
+    } catch (e) {}
+  }
   function falar(texto) {
     if (cfg.falarNomes === false || !texto) return;
     try {
       if (!('speechSynthesis' in window)) return;
+      const synth = window.speechSynthesis;
       const u = new SpeechSynthesisUtterance(texto);
       u.lang = 'pt-BR';
       u.rate = 0.98; u.pitch = 1; u.volume = 1;
-      const vozes = window.speechSynthesis.getVoices() || [];
+      const vozes = synth.getVoices() || [];
       const vbr = vozes.find((v) => /pt[-_]?BR/i.test(v.lang)) || vozes.find((v) => /^pt/i.test(v.lang));
       if (vbr) u.voice = vbr;
-      window.speechSynthesis.cancel(); // evita fila acumulada
-      window.speechSynthesis.speak(u);
+      __utterRef = u;                 // mantém referência (evita GC no Android)
+      try { synth.resume(); } catch (e) {} // workaround do bug de pausa do Android
+      synth.speak(u);
     } catch (e) {}
   }
   function anunciarCidade(cidade, embarcam, descem) {
@@ -345,8 +364,9 @@
     anuncioTimer = setTimeout(() => bg.classList.remove('aberto'), 9000); // some sozinho
   }
   $('#anuncioBg').addEventListener('click', () => { clearTimeout(anuncioTimer); $('#anuncioBg').classList.remove('aberto'); });
-  // Libera o áudio no 1º gesto do usuário (navegadores exigem)
-  document.addEventListener('click', desbloquearAudio, { once: true });
+  // Libera áudio e voz nos primeiros toques (Android exige gesto; sem once
+  // pra tentar de novo caso o 1º toque não destrave — cada função se protege).
+  document.addEventListener('click', () => { desbloquearAudio(); destravarVoz(); });
 
   // Testar sem GPS: no console → simularCarro(-22.47, -48.99)
   window.simularCarro = (lat, lng) => { posCarro = { lat, lng }; atualizarCarro(); };
