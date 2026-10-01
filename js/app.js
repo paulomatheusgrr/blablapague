@@ -336,17 +336,21 @@
       synth.speak(u);
     } catch (e) {}
   }
+  let ultimaFala = ''; // guarda o texto do anúncio atual (p/ repetir no toque)
   function anunciarCidade(cidade, embarcam, descem) {
     tocarChimeAeroporto();
-    mostrarPopupAnuncio(cidade, embarcam, descem);
-    // Fala os nomes DEPOIS do chime (~1.5s), pra não sobrepor o som.
     const partes = [];
     if (embarcam.length) partes.push('Embarque em ' + cidade + '. ' + nomesFalados(embarcam));
     if (descem.length) partes.push('Desembarque em ' + cidade + '. ' + nomesFalados(descem));
-    const fala = partes.join('. ');
-    if (fala) setTimeout(() => falar(fala), 1500);
+    ultimaFala = partes.join('. ');
+    mostrarPopupAnuncio(cidade, embarcam, descem);
+    // Tenta falar sozinho DEPOIS do chime (funciona no PC; em alguns Androids
+    // só sai no toque — por isso o popup também fala quando tocado).
+    if (ultimaFala) setTimeout(() => falar(ultimaFala), 1500);
   }
   let anuncioTimer = null;
+  function fecharAnuncio() { clearTimeout(anuncioTimer); $('#anuncioBg').classList.remove('aberto'); }
+  function agendarFechar(ms) { clearTimeout(anuncioTimer); anuncioTimer = setTimeout(fecharAnuncio, ms); }
   function mostrarPopupAnuncio(cidade, embarcam, descem) {
     const bg = $('#anuncioBg'); if (!bg) return;
     const bloco = (titulo, klass, gente) => gente.length ? `
@@ -360,10 +364,18 @@
       bloco('🛫 Embarque', 'emb', embarcam) +
       bloco('🛬 Desembarque', 'des', descem);
     bg.classList.add('aberto');
-    clearTimeout(anuncioTimer);
-    anuncioTimer = setTimeout(() => bg.classList.remove('aberto'), 9000); // some sozinho
+    agendarFechar(12000); // some sozinho depois de 12s
   }
-  $('#anuncioBg').addEventListener('click', () => { clearTimeout(anuncioTimer); $('#anuncioBg').classList.remove('aberto'); });
+  // Toque NO cartão = repete a fala (dispara no gesto → sai no Android).
+  // Toque FORA do cartão (fundo escuro) = fecha.
+  $('#anuncioBg').addEventListener('click', (e) => {
+    if (e.target.closest('.anuncio-card')) {
+      falar(ultimaFala);
+      agendarFechar(12000); // mantém aberto mais um tempo
+    } else {
+      fecharAnuncio();
+    }
+  });
   // Libera áudio e voz nos primeiros toques (Android exige gesto; sem once
   // pra tentar de novo caso o 1º toque não destrave — cada função se protege).
   document.addEventListener('click', () => { desbloquearAudio(); destravarVoz(); });
