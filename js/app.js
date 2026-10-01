@@ -320,8 +320,8 @@
       ttsDestravado = true;
     } catch (e) {}
   }
-  function falar(texto) {
-    if (cfg.falarNomes === false || !texto) return;
+  // Voz do navegador (reserva). No Android costuma exigir toque.
+  function falarNavegador(texto) {
     try {
       if (!('speechSynthesis' in window)) return;
       const synth = window.speechSynthesis;
@@ -335,6 +335,29 @@
       try { synth.resume(); } catch (e) {} // workaround do bug de pausa do Android
       synth.speak(u);
     } catch (e) {}
+  }
+  // Fala os nomes. Preferir o áudio do n8n (toca pelo AudioContext já
+  // destravado → MÃOS LIVRES no Android, igual ao chime). Se falhar, usa a
+  // voz do navegador como reserva.
+  async function falar(texto) {
+    if (cfg.falarNomes === false || !texto) return;
+    if (cfg.ttsUrl) {
+      try {
+        desbloquearAudio();
+        if (audioCtx) {
+          const sep = cfg.ttsUrl.indexOf('?') >= 0 ? '&' : '?';
+          const r = await fetch(cfg.ttsUrl + sep + 'text=' + encodeURIComponent(texto));
+          if (r.ok) {
+            const bytes = await r.arrayBuffer();
+            const audio = await audioCtx.decodeAudioData(bytes);
+            const src = audioCtx.createBufferSource();
+            src.buffer = audio; src.connect(audioCtx.destination); src.start();
+            return; // tocou pelo n8n, não precisa da reserva
+          }
+        }
+      } catch (e) { /* cai na voz do navegador abaixo */ }
+    }
+    falarNavegador(texto);
   }
   let ultimaFala = ''; // guarda o texto do anúncio atual (p/ repetir no toque)
   function anunciarCidade(cidade, embarcam, descem) {
