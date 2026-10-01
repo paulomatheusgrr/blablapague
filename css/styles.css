@@ -471,6 +471,30 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .anuncio-bg.aberto, .anuncio-card, .anuncio-pessoa .mini-avatar { animation: none; }
 }
+
+/* -------- Tela inicial "Toque para começar" -------- */
+.inicio-bg {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem; text-align: center; color: #fff; cursor: pointer;
+  background: radial-gradient(1000px 600px at 50% 20%, #2a4db0 0%, transparent 60%),
+              linear-gradient(160deg, var(--fundo) 0%, var(--fundo2) 100%);
+  transition: opacity 0.4s ease;
+}
+.inicio-bg.fechado { opacity: 0; pointer-events: none; }
+.inicio-card { max-width: 680px; }
+.inicio-emoji { font-size: clamp(3rem, 12vw, 6rem); line-height: 1; }
+.inicio-card h1 { font-size: clamp(2rem, 7vw, 3.6rem); font-weight: 800; margin: 0.4rem 0 1.4rem; letter-spacing: -0.5px; }
+.inicio-botao {
+  display: inline-block; background: var(--verde); color: #fff;
+  font-size: clamp(1.1rem, 3.6vw, 1.8rem); font-weight: 800;
+  padding: clamp(0.8rem, 2.5vw, 1.3rem) clamp(1.4rem, 5vw, 2.6rem);
+  border-radius: 999px; box-shadow: 0 10px 30px rgba(23,185,120,0.45);
+  animation: iniciarPulsa 1.4s ease-in-out infinite;
+}
+@keyframes iniciarPulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.inicio-dica { margin-top: 1.2rem; font-size: clamp(0.85rem, 2.4vw, 1.1rem); opacity: 0.8; }
+@media (prefers-reduced-motion: reduce) { .inicio-botao { animation: none; } }
 .parada .ponto.chegou { background: #ffd166; box-shadow: 0 0 0 5px rgba(255, 209, 102, 0.45); }
 
 /* Passageiro piscando quando o carro chega na cidade dele.

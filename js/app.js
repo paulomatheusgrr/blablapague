@@ -560,6 +560,19 @@
   // Tenta entrar em tela cheia no 1º toque (precisa de gesto do usuário)
   document.addEventListener('click', () => { if (!emFullscreen()) toggleFullscreen(); }, { once: true });
 
+  // -------- Tela inicial "Toque para começar" --------
+  // 1 toque libera tudo de uma vez (exigência do navegador): som, voz e tela cheia.
+  const inicioBg = $('#inicioBg');
+  if (inicioBg) {
+    inicioBg.addEventListener('click', () => {
+      try { toggleFullscreen(); } catch (e) {}
+      desbloquearAudio();   // libera o Web Audio (chime + voz do n8n)
+      destravarVoz();       // destrava a voz do navegador (reserva)
+      inicioBg.classList.add('fechado');
+      setTimeout(() => { inicioBg.style.display = 'none'; }, 450);
+    }, { once: true });
+  }
+
   // -------- Manter a tela acesa (Wake Lock) --------
   let wakeLock = null;
   async function manterTelaAcesa() {
