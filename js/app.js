@@ -267,10 +267,25 @@
 
   // -------- Anúncio de embarque/desembarque (som de aeroporto + popup) --------
   let audioCtx = null;
+  let masterGain = null;
   function desbloquearAudio() {
     try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {}
     // Aquece as vozes do TTS (carregam de forma assíncrona) no 1º gesto.
     try { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); } catch (e) {}
+  }
+  // Saída amplificada: ganho (acima de 1) + limitador, pra o som se destacar da
+  // música do carro sem estourar. Ajuste o volume com cfg.volumeBoost (padrão 3).
+  function saidaAudio() {
+    if (!audioCtx) return null;
+    if (!masterGain) {
+      const comp = audioCtx.createDynamicsCompressor();
+      comp.threshold.value = -8; comp.knee.value = 6; comp.ratio.value = 12;
+      comp.attack.value = 0.003; comp.release.value = 0.25;
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = (cfg.volumeBoost > 0) ? cfg.volumeBoost : 3;
+      masterGain.connect(comp); comp.connect(audioCtx.destination);
+    }
+    return masterGain;
   }
   // Chime clássico de aeroporto (3 notas sino "bim-bam-bom") sintetizado, sem arquivo.
   function tocarChimeAeroporto() {
@@ -288,9 +303,9 @@
         const start = t0 + n.t;
         // envelope tipo sino: ataque rápido, cauda longa
         g.gain.setValueAtTime(0.0001, start);
-        g.gain.exponentialRampToValueAtTime(0.5, start + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.8, start + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
-        osc.connect(g); g.connect(audioCtx.destination);
+        osc.connect(g); g.connect(saidaAudio() || audioCtx.destination);
         osc.start(start); osc.stop(start + 1.2);
       }
     } catch (e) {}
@@ -351,7 +366,7 @@
             const bytes = await r.arrayBuffer();
             const audio = await audioCtx.decodeAudioData(bytes);
             const src = audioCtx.createBufferSource();
-            src.buffer = audio; src.connect(audioCtx.destination); src.start();
+            src.buffer = audio; src.connect(saidaAudio() || audioCtx.destination); src.start();
             return; // tocou pelo n8n, não precisa da reserva
           }
         }
