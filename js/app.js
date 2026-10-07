@@ -282,7 +282,7 @@
       comp.threshold.value = -8; comp.knee.value = 6; comp.ratio.value = 12;
       comp.attack.value = 0.003; comp.release.value = 0.25;
       masterGain = audioCtx.createGain();
-      masterGain.gain.value = (cfg.volumeBoost > 0) ? cfg.volumeBoost : 3;
+      masterGain.gain.value = (cfg.volumeBoost > 0) ? cfg.volumeBoost : 4;
       masterGain.connect(comp); comp.connect(audioCtx.destination);
     }
     return masterGain;
@@ -335,6 +335,48 @@
       ttsDestravado = true;
     } catch (e) {}
   }
+  // Elemento <audio> pra tocar a voz: ao tocar, o Android dá FOCO DE ÁUDIO e
+  // abaixa/pausa a outra mídia (a música do carro) enquanto fala. Roteamos pelo
+  // Web Audio pra manter o boost de volume.
+  const SILENCIO = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+  let vozAudioEl = null, vozSrcNode = null, elDestravado = false;
+  function getVozEl() {
+    if (!vozAudioEl) { vozAudioEl = new Audio(); vozAudioEl.crossOrigin = 'anonymous'; vozAudioEl.preload = 'auto'; }
+    return vozAudioEl;
+  }
+  function destravarElemento() { // chamar DENTRO de um gesto (toque)
+    if (elDestravado) return;
+    try {
+      const el = getVozEl();
+      el.src = SILENCIO; el.muted = true;
+      const p = el.play();
+      if (p && p.then) p.then(() => { try { el.pause(); el.currentTime = 0; el.muted = false; } catch (e) {} }).catch(() => { el.muted = false; });
+      elDestravado = true;
+    } catch (e) {}
+  }
+  function falarPorElemento(url) {
+    return new Promise((resolve, reject) => {
+      try {
+        const el = getVozEl();
+        el.muted = false; el.volume = 1;
+        if (audioCtx && !vozSrcNode) {
+          vozSrcNode = true; // marca ANTES (createMediaElementSource só pode 1x por elemento)
+          try { const n = audioCtx.createMediaElementSource(el); n.connect(saidaAudio() || audioCtx.destination); vozSrcNode = n; } catch (e) { /* sem roteamento: toca direto (sem boost, mas ainda abaixa a música) */ }
+        }
+        try {
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new (window.MediaMetadata || Object)({ title: 'Anúncio de embarque', artist: 'BlaBlaPague' });
+            navigator.mediaSession.playbackState = 'playing';
+          }
+        } catch (e) {}
+        el.onerror = () => reject(new Error('audio-el'));
+        el.onended = () => { try { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none'; } catch (e) {} };
+        el.src = url;
+        const p = el.play();
+        if (p && p.then) p.then(() => resolve(true)).catch(reject); else resolve(true);
+      } catch (e) { reject(e); }
+    });
+  }
   // Voz do navegador (reserva). No Android costuma exigir toque.
   function falarNavegador(texto) {
     try {
@@ -357,22 +399,26 @@
   async function falar(texto) {
     if (cfg.falarNomes === false || !texto) return;
     if (cfg.ttsUrl) {
+      desbloquearAudio();
+      const sep = cfg.ttsUrl.indexOf('?') >= 0 ? '&' : '?';
+      const url = cfg.ttsUrl + sep + 'text=' + encodeURIComponent(texto);
+      // 1) Elemento <audio> → pede foco de áudio (abaixa a música do carro) + boost
+      try { await falarPorElemento(url); return; } catch (e) { /* tenta o próximo */ }
+      // 2) fetch + Web Audio (mãos livres + boost, mas NÃO abaixa a música)
       try {
-        desbloquearAudio();
         if (audioCtx) {
-          const sep = cfg.ttsUrl.indexOf('?') >= 0 ? '&' : '?';
-          const r = await fetch(cfg.ttsUrl + sep + 'text=' + encodeURIComponent(texto));
+          const r = await fetch(url);
           if (r.ok) {
             const bytes = await r.arrayBuffer();
             const audio = await audioCtx.decodeAudioData(bytes);
             const src = audioCtx.createBufferSource();
             src.buffer = audio; src.connect(saidaAudio() || audioCtx.destination); src.start();
-            return; // tocou pelo n8n, não precisa da reserva
+            return;
           }
         }
       } catch (e) { /* cai na voz do navegador abaixo */ }
     }
-    falarNavegador(texto);
+    falarNavegador(texto); // 3) reserva
   }
   let ultimaFala = ''; // guarda o texto do anúncio atual (p/ repetir no toque)
   function anunciarCidade(cidade, embarcam, descem) {
@@ -416,7 +462,7 @@
   });
   // Libera áudio e voz nos primeiros toques (Android exige gesto; sem once
   // pra tentar de novo caso o 1º toque não destrave — cada função se protege).
-  document.addEventListener('click', () => { desbloquearAudio(); destravarVoz(); });
+  document.addEventListener('click', () => { desbloquearAudio(); destravarVoz(); destravarElemento(); });
 
   // Testar sem GPS: no console → simularCarro(-22.47, -48.99)
   window.simularCarro = (lat, lng) => { posCarro = { lat, lng }; atualizarCarro(); };
@@ -583,6 +629,7 @@
       try { toggleFullscreen(); } catch (e) {}
       desbloquearAudio();   // libera o Web Audio (chime + voz do n8n)
       destravarVoz();       // destrava a voz do navegador (reserva)
+      destravarElemento();  // destrava o elemento <audio> (foco de áudio p/ abaixar a música)
       inicioBg.classList.add('fechado');
       setTimeout(() => { inicioBg.style.display = 'none'; }, 450);
     }, { once: true });
