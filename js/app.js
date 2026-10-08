@@ -268,21 +268,29 @@
   // -------- Anúncio de embarque/desembarque (som de aeroporto + popup) --------
   let audioCtx = null;
   let masterGain = null;
+  let suspenderTimer = null;
   function desbloquearAudio() {
     try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) {}
+    clearTimeout(suspenderTimer); // acordou: cancela qualquer "soltar foco" pendente
     // Aquece as vozes do TTS (carregam de forma assíncrona) no 1º gesto.
     try { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); } catch (e) {}
   }
-  // Saída amplificada: ganho (acima de 1) + limitador, pra o som se destacar da
-  // música do carro sem estourar. Ajuste o volume com cfg.volumeBoost (padrão 3).
+  // Solta o foco de áudio do Android (suspende o AudioContext) quando o anúncio
+  // acaba, pra a MÚSICA DO CARRO VOLTAR. Reacorda sozinho no próximo som.
+  function soltarFoco(ms) {
+    clearTimeout(suspenderTimer);
+    suspenderTimer = setTimeout(() => { try { if (audioCtx && audioCtx.state === 'running') audioCtx.suspend(); } catch (e) {} }, ms || 400);
+  }
+  // Saída amplificada: ganho (bem acima de 1) + limitador brickwall, pra o som
+  // ficar alto e se destacar da música sem estourar. cfg.volumeBoost (padrão 5).
   function saidaAudio() {
     if (!audioCtx) return null;
     if (!masterGain) {
       const comp = audioCtx.createDynamicsCompressor();
-      comp.threshold.value = -8; comp.knee.value = 6; comp.ratio.value = 12;
-      comp.attack.value = 0.003; comp.release.value = 0.25;
+      comp.threshold.value = -2; comp.knee.value = 0; comp.ratio.value = 20;
+      comp.attack.value = 0.002; comp.release.value = 0.2;
       masterGain = audioCtx.createGain();
-      masterGain.gain.value = (cfg.volumeBoost > 0) ? cfg.volumeBoost : 4;
+      masterGain.gain.value = (cfg.volumeBoost > 0) ? cfg.volumeBoost : 5;
       masterGain.connect(comp); comp.connect(audioCtx.destination);
     }
     return masterGain;
@@ -303,11 +311,13 @@
         const start = t0 + n.t;
         // envelope tipo sino: ataque rápido, cauda longa
         g.gain.setValueAtTime(0.0001, start);
-        g.gain.exponentialRampToValueAtTime(0.8, start + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, start + 1.1);
+        g.gain.exponentialRampToValueAtTime(0.95, start + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, start + 1.2);
         osc.connect(g); g.connect(saidaAudio() || audioCtx.destination);
-        osc.start(start); osc.stop(start + 1.2);
+        osc.start(start); osc.stop(start + 1.3);
       }
+      // Se não vier voz logo em seguida, solta o foco ~2,6s após o chime.
+      soltarFoco(2600);
     } catch (e) {}
   }
   // Junta os primeiros nomes de forma natural: "Ana", "Ana e Bruno", "Ana, Bruno e Carla"
@@ -369,8 +379,8 @@
             navigator.mediaSession.playbackState = 'playing';
           }
         } catch (e) {}
-        el.onerror = () => reject(new Error('audio-el'));
-        el.onended = () => { try { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none'; } catch (e) {} };
+        el.onerror = () => { soltarFoco(300); reject(new Error('audio-el')); };
+        el.onended = () => { try { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none'; } catch (e) {} soltarFoco(300); };
         el.src = url;
         const p = el.play();
         if (p && p.then) p.then(() => resolve(true)).catch(reject); else resolve(true);
@@ -412,7 +422,9 @@
             const bytes = await r.arrayBuffer();
             const audio = await audioCtx.decodeAudioData(bytes);
             const src = audioCtx.createBufferSource();
-            src.buffer = audio; src.connect(saidaAudio() || audioCtx.destination); src.start();
+            src.buffer = audio; src.connect(saidaAudio() || audioCtx.destination);
+            src.onended = () => soltarFoco(300);
+            src.start();
             return;
           }
         }

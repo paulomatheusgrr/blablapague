@@ -25,8 +25,8 @@ window.BLABLA_CONFIG = {
   somEmbarque: true,
   falarNomes: true,
   // 🔊 Volume do chime e da voz (amplificação acima do normal, com limitador
-  //    pra não estourar). 1 = normal, 4 = bem mais alto, 5–6 = máximo.
-  volumeBoost: 4,
+  //    pra não estourar). 1 = normal, 5 = bem mais alto, 6–8 = máximo.
+  volumeBoost: 5,
   // 🗣️ Voz MÃOS LIVRES no Android: endpoint do n8n que gera o MP3 da frase.
   //    Vazio = usa a voz do navegador (no Android pode exigir um toque).
   //    Ex.: 'https://n8n.safepointmarket.com.br/webhook/tts-blablacar'
