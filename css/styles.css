@@ -216,6 +216,17 @@ body {
 
 .modal-acoes { display: flex; gap: 0.8rem; padding: 1.4rem 1.6rem 1.6rem; }
 .aviso-pix { margin: 1rem 1.6rem 0; padding: 0.9rem 1rem; background: #fff4e5; border: 1px solid #ffd7a1; border-radius: 12px; color: #8a5300; font-weight: 600; }
+/* Link discreto do motorista p/ remover quem não embarcou (no-show) */
+.link-remover {
+  display: block; width: calc(100% - 3.2rem); margin: 0 auto 1.2rem; padding: 0.5rem;
+  background: none; border: none; cursor: pointer;
+  color: #b3121f; font-size: 0.85rem; font-weight: 700; opacity: 0.8;
+}
+.link-remover:hover { opacity: 1; text-decoration: underline; }
+.toast-undo {
+  margin-left: 0.5rem; background: var(--verde); color: #fff; border: none;
+  border-radius: 8px; padding: 0.25rem 0.7rem; font-weight: 800; cursor: pointer; font-size: 0.9rem;
+}
 
 /* Modal PIX em telas baixas/deitadas (multimídia do carro):
    QR à esquerda, dados à direita — cabe tudo sem rolagem. */
@@ -237,14 +248,15 @@ body {
   .qr-box { grid-area: qr; padding: 0; }
   /* Reserva a altura do cabeçalho + botões (~106px) e usa o resto pro QR,
      limitado a 500px. Assim fica o maior possível e nunca gera rolagem. */
-  .qr-box img, .qr-box canvas { width: min(500px, calc(100vh - 150px)) !important; width: min(500px, calc(100dvh - 150px)) !important; }
+  .qr-box img, .qr-box canvas { width: min(500px, calc(100vh - 176px)) !important; width: min(500px, calc(100dvh - 176px)) !important; }
   .qr-box .dica { display: none; }
   .copia { grid-area: copia; padding: 0; align-self: end; }
   .copia input { font-size: 0.72rem; padding: 0.55rem; }
   .passos { grid-area: passos; margin: 0.6rem 0 0; padding: 0.55rem 0.8rem; font-size: 0.8rem; align-self: start; }
-  .modal-acoes { padding: 0.4rem 1.1rem 0.5rem; }
+  .modal-acoes { padding: 0.4rem 1.1rem 0.4rem; }
   .modal-acoes .btn { padding: 0.5rem 0.9rem; font-size: 0.95rem; }
   .aviso-pix { margin: 0.4rem 1.1rem 0; padding: 0.5rem 0.8rem; font-size: 0.8rem; }
+  .link-remover { margin: 0 auto 0.5rem; padding: 0.25rem; font-size: 0.78rem; }
 }
 
 /* -------- Botões -------- */

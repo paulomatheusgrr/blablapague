@@ -65,7 +65,9 @@
   }
 
   // -------- Estado --------
-  let trip = Store.getTrip();
+  // Define a viagem atual já SEM os "não embarcou" (filtro de no-shows).
+  function usarTrip(t) { trip = Store.filtrarRemovidos(t); return trip; }
+  let trip = Store.filtrarRemovidos(Store.getTrip());
   let cfg = Store.getConfig();
   let atual = null; // passageiro aberto no modal
   // Mostra "Carregando…" só num aparelho novo (feed configurado e nada salvo ainda).
@@ -516,11 +518,28 @@
   function confirmarPagamento() {
     if (!atual) return;
     const nome = atual.nome;
-    trip = Store.setPassengerStatus(atual.id, 'pago');
+    usarTrip(Store.setPassengerStatus(atual.id, 'pago'));
     fecharModal();
     renderPassageiros();
     festa();
     mostrarAvaliacao(nome);
+  }
+
+  // -------- Remover quem não embarcou (no-show) --------
+  function removerNaoEmbarcou() {
+    if (!atual) return;
+    const p = atual;
+    Store.addRemovido(trip.dataHora, p);     // persiste (não volta no próximo sync)
+    usarTrip(Store.getTrip());               // reaplica o filtro
+    fecharModal();
+    renderBanner(); renderPassageiros(); renderRota();
+    const primeiro = (p.nome || '').trim().split(/\s+/)[0] || 'Passageiro';
+    toastDesfazer(`🚫 ${primeiro} removido (não embarcou).`, () => {
+      Store.tirarRemovido(trip.dataHora, p);
+      usarTrip(Store.getTrip());
+      renderBanner(); renderPassageiros(); renderRota();
+      toast(`${primeiro} de volta na viagem ✅`);
+    });
   }
 
   // -------- Agradecimento + pedido de 5 estrelas --------
@@ -560,6 +579,19 @@
     clearTimeout(toastT);
     toastT = setTimeout(() => t.classList.remove('show'), 3000);
   }
+  // Toast com ação "Desfazer" (fica mais tempo na tela).
+  function toastDesfazer(msg, onUndo) {
+    const t = $('#toast');
+    t.innerHTML = '';
+    t.appendChild(document.createTextNode(msg + ' '));
+    const b = document.createElement('button');
+    b.className = 'toast-undo'; b.textContent = 'Desfazer';
+    b.onclick = () => { clearTimeout(toastT); t.classList.remove('show'); setTimeout(() => { t.textContent = ''; }, 300); try { onUndo && onUndo(); } catch (e) {} };
+    t.appendChild(b);
+    t.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(() => { t.classList.remove('show'); setTimeout(() => { t.textContent = ''; }, 300); }, 7000);
+  }
 
   function festa() {
     const selo = $('#pagoSelo');
@@ -595,12 +627,13 @@
   // -------- Eventos --------
   $('#btnVoltar').addEventListener('click', fecharModal);
   $('#btnPaguei').addEventListener('click', confirmarPagamento);
+  $('#btnNaoEmbarcou').addEventListener('click', removerNaoEmbarcou);
   $('#btnCopiar').addEventListener('click', copiar);
   $('#modalBg').addEventListener('click', (e) => { if (e.target.id === 'modalBg') fecharModal(); });
   $('#avaliarFechar').addEventListener('click', fecharAvaliacao);
   $('#avaliarBg').addEventListener('click', (e) => { if (e.target.id === 'avaliarBg') fecharAvaliacao(); });
   // Recarrega se a config/viagem mudar em outra aba (ex.: admin)
-  window.addEventListener('storage', () => { trip = Store.getTrip(); cfg = Store.getConfig(); aplicarZoom(); renderBanner(); renderPassageiros(); renderRota(); });
+  window.addEventListener('storage', () => { usarTrip(Store.getTrip()); cfg = Store.getConfig(); aplicarZoom(); renderBanner(); renderPassageiros(); renderRota(); });
 
   // Zoom da tela (ajuste fino p/ a multimídia do carro) — vem do config
   function aplicarZoom() { try { document.body.style.zoom = (cfg.zoom && cfg.zoom > 0) ? cfg.zoom : 1; } catch (e) {} }
@@ -694,8 +727,8 @@
       });
 
       if (JSON.stringify(nova) !== JSON.stringify(local)) {
-        Store.setTrip(nova);
-        trip = nova;
+        Store.setTrip(nova);       // guarda a viagem COMPLETA (do n8n)
+        usarTrip(nova);            // e exibe SEM os "não embarcou"
         renderBanner();
         renderPassageiros();
         renderRota();

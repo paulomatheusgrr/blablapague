@@ -7,6 +7,9 @@
 
   const CFG_KEY = 'blablacar_config';
   const TRIP_KEY = 'blablacar_trip';
+  const REMOV_KEY = 'blablacar_removidos'; // no-shows por viagem (dataHora)
+
+  const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
   const defaultConfig = {
     pixKey: '',                 // <- sua chave PIX (email, telefone, CPF ou aleatória)
@@ -104,6 +107,27 @@
       const t = structuredClone(sampleTrip);
       this.setTrip(t);
       return t;
+    },
+
+    // -------- No-shows (quem foi buscado mas não embarcou) --------
+    // Chave estável do passageiro (nome + trecho), pra sobreviver aos syncs.
+    chaveRemocao(p) { return norm(p && p.nome) + '|' + norm(p && p.embarque) + '|' + norm(p && p.destino); },
+    getRemovidos(dataHora) { const all = read(REMOV_KEY, {}); return all[dataHora || ''] || []; },
+    addRemovido(dataHora, p) {
+      const all = read(REMOV_KEY, {}); const k = this.chaveRemocao(p);
+      const arr = all[dataHora || ''] || []; if (arr.indexOf(k) < 0) arr.push(k);
+      all[dataHora || ''] = arr; write(REMOV_KEY, all);
+    },
+    tirarRemovido(dataHora, p) {
+      const all = read(REMOV_KEY, {}); const k = this.chaveRemocao(p);
+      all[dataHora || ''] = (all[dataHora || ''] || []).filter((x) => x !== k); write(REMOV_KEY, all);
+    },
+    // Remove do objeto de viagem os passageiros marcados como "não embarcou".
+    filtrarRemovidos(trip) {
+      if (!trip) return trip;
+      const rem = this.getRemovidos(trip.dataHora);
+      if (rem.length) trip.passageiros = (trip.passageiros || []).filter((p) => rem.indexOf(this.chaveRemocao(p)) < 0);
+      return trip;
     },
     newId() {
       return 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1000);
