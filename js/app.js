@@ -491,7 +491,8 @@
 
     const temChave = !!(cfg.pixKey && cfg.pixKey.trim());
     $('#avisoPix').hidden = temChave;
-    $('#mConteudo').style.display = temChave ? '' : 'none';
+    $('#qrBox').style.display = temChave ? '' : 'none';
+    $('#mDetalhes').style.display = temChave ? '' : 'none';
 
     if (temChave) {
       const payload = Pix.buildPix({

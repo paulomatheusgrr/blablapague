@@ -5,7 +5,7 @@
   <meta http-equiv="Cache-Control" content="no-cache" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BlaBlaPague — Pagamento da viagem</title>
-  <link rel="stylesheet" href="css/styles.css?v=21" />
+  <link rel="stylesheet" href="css/styles.css?v=22" />
 </head>
 <body>
   <!-- Tela inicial: 1 toque ativa som, voz e tela cheia (exigência do navegador) -->
@@ -52,32 +52,38 @@
         <div class="valor-big" id="mValor"></div>
       </div>
 
-      <div id="mConteudo">
+      <div class="modal-corpo">
         <div class="qr-box" id="qrBox">
           <div id="qr"></div>
           <p class="dica">Aponte a câmera do seu banco para o QR Code</p>
         </div>
-        <div class="copia">
-          <label>PIX Copia e Cola</label>
-          <div class="linha">
-            <input id="mCopia" readonly />
-            <button class="btn btn-azul btn-sm" id="btnCopiar">Copiar</button>
+
+        <!-- Coluna ao lado do QR: dados + botões (em tela estreita fica ao lado) -->
+        <div class="modal-lado">
+          <div id="mDetalhes">
+            <div class="copia">
+              <label>PIX Copia e Cola</label>
+              <div class="linha">
+                <input id="mCopia" readonly />
+                <button class="btn btn-azul btn-sm" id="btnCopiar">Copiar</button>
+              </div>
+            </div>
+            <div class="passos">
+              <b>1.</b> Abra o app do seu banco &nbsp; <b>2.</b> Escolha <b>PIX › Ler QR Code</b> &nbsp; <b>3.</b> Confirme o valor
+            </div>
           </div>
-        </div>
-        <div class="passos">
-          <b>1.</b> Abra o app do seu banco &nbsp; <b>2.</b> Escolha <b>PIX › Ler QR Code</b> &nbsp; <b>3.</b> Confirme o valor
-        </div>
-      </div>
 
-      <div class="aviso-pix" id="avisoPix" hidden>
-        ⚠️ A chave PIX ainda não foi configurada. Toque em ⚙️ (canto inferior) para configurar no Admin.
-      </div>
+          <div class="aviso-pix" id="avisoPix" hidden>
+            ⚠️ A chave PIX ainda não foi configurada. Toque em ⚙️ (canto inferior) para configurar no Admin.
+          </div>
 
-      <div class="modal-acoes">
-        <button class="btn btn-cinza" id="btnVoltar">Voltar</button>
-        <button class="btn btn-verde" id="btnPaguei">✅ Já paguei</button>
+          <div class="modal-acoes">
+            <button class="btn btn-cinza" id="btnVoltar">Voltar</button>
+            <button class="btn btn-verde" id="btnPaguei">✅ Já paguei</button>
+          </div>
+          <button class="link-remover" id="btnNaoEmbarcou">🚫 Não embarcou — remover da viagem</button>
+        </div>
       </div>
-      <button class="link-remover" id="btnNaoEmbarcou">🚫 Não embarcou — remover da viagem</button>
     </div>
   </div>
 
@@ -108,10 +114,10 @@
   </div>
 
   <!-- Bibliotecas locais -->
-  <script src="js/qrcode.js?v=21"></script>
-  <script src="js/pix.js?v=21"></script>
-  <script src="js/config.js?v=21"></script>
-  <script src="js/store.js?v=21"></script>
-  <script src="js/app.js?v=21"></script>
+  <script src="js/qrcode.js?v=22"></script>
+  <script src="js/pix.js?v=22"></script>
+  <script src="js/config.js?v=22"></script>
+  <script src="js/store.js?v=22"></script>
+  <script src="js/app.js?v=22"></script>
 </body>
 </html>
