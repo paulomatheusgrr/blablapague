@@ -147,18 +147,21 @@
     if (!paradas.length) { sec.hidden = true; return; }
     sec.hidden = false;
     const lista = trip.passageiros || [];
-    $('#paradas').innerHTML = paradas.map((p) => {
+    const comp = horariosCompletos();
+    $('#paradas').innerHTML = paradas.map((p, i) => {
       const descem = lista.filter((x) => mesmaCidade(x.destino, p.nome));
       const baloes = descem.length
         ? `<div class="baloes">${descem.map((x) => `<div class="balao" title="${x.nome} desce em ${p.nome}">${avatarMini(x.nome, x.foto)}</div>`).join('')}</div>`
         : '';
+      const h = comp[i] || {};
+      const horaHtml = h.hora ? `<div class="hora-parada${h.est ? ' est' : ''}">🕐 ${h.est ? '~' : ''}${h.hora}</div>` : '';
       return `
       <div class="parada">
         ${baloes}
         <span class="ponto"></span>
         ${p.foto ? `<img class="foto" src="${p.foto}" alt="">` : `<div class="foto">📍</div>`}
         <div class="rotulo">${p.nome || ''}</div>
-        ${p.horario ? `<div class="hora-parada">🕐 ${p.horario}</div>` : ''}
+        ${horaHtml}
       </div>`;
     }).join('');
     atualizarCarro(); // o innerHTML acima removeu o carrinho — reposiciona
@@ -447,24 +450,64 @@
     const pr = (trip.paradas || []).find((p) => mesmaCidade(p.nome, cidade));
     return pr && pr.horario ? pr.horario : '';
   }
+  // Horários de TODAS as paradas: usa o conhecido (embarque) e ESTIMA os que
+  // faltam (ex.: destino final) pela distância + velocidade média dos trechos.
+  const minsDe = (hhmm) => { const p = (hhmm || '').split(':'); const h = +p[0], m = +p[1]; return isNaN(h) || isNaN(m) ? null : h * 60 + m; };
+  const hhmmDe = (min) => { min = Math.round(min); const h = ((Math.floor(min / 60)) % 24 + 24) % 24, m = (min % 60 + 60) % 60; return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'); };
+  function horariosCompletos() {
+    const paradas = trip.paradas || [];
+    let distSum = 0, timeSum = 0;
+    for (let i = 0; i < paradas.length - 1; i++) {
+      const ta = minsDe(paradas[i].horario), tb = minsDe(paradas[i + 1].horario);
+      const ca = coordCidade(paradas[i].nome), cb = coordCidade(paradas[i + 1].nome);
+      if (ta != null && tb != null && tb > ta && ca && cb) { distSum += distKm(ca, cb); timeSum += (tb - ta); }
+    }
+    const kmPorMin = (distSum > 0 && timeSum > 0) ? (distSum / timeSum) : (65 / 60); // 65 km/h padrão
+    const out = []; let curMin = null, curCoord = null;
+    for (const p of paradas) {
+      const known = minsDe(p.horario), coord = coordCidade(p.nome);
+      if (known != null) { curMin = known; out.push({ nome: p.nome, hora: p.horario, est: false }); }
+      else if (curMin != null && coord && curCoord) { curMin += distKm(curCoord, coord) / kmPorMin; out.push({ nome: p.nome, hora: hhmmDe(curMin), est: true }); }
+      else { out.push({ nome: p.nome, hora: '', est: false }); }
+      if (coord) curCoord = coord;
+    }
+    return out;
+  }
   let ultimaFala = ''; // guarda o texto do anúncio atual (p/ repetir no toque)
   function anunciarCidade(cidade, embarcam, descem) {
     tocarChimeAeroporto();
     const hora = horaDaCidade(cidade);
+    const comp = horariosCompletos();
+    const idx = comp.findIndex((p) => mesmaCidade(p.nome, cidade));
+    const prox = (idx >= 0 && idx < comp.length - 1) ? comp[idx + 1] : null;
     const partes = [];
     partes.push(hora ? ('Chegada em ' + cidade + ', ' + horaFalada(hora)) : ('Chegando em ' + cidade));
     if (embarcam.length) partes.push('Embarque: ' + nomesFalados(embarcam));
     if (descem.length) partes.push('Desembarque: ' + nomesFalados(descem));
+    if (prox) partes.push('Próxima parada: ' + prox.nome + (prox.hora ? (', ' + (prox.est ? 'previsão ' : '') + horaFalada(prox.hora)) : ''));
     ultimaFala = partes.join('. ');
-    mostrarPopupAnuncio(cidade, hora, embarcam, descem);
+    mostrarPopupAnuncio(cidade, hora, embarcam, descem, prox);
     // Tenta falar sozinho DEPOIS do chime (funciona no PC; em alguns Androids
     // só sai no toque — por isso o popup também fala quando tocado).
     if (ultimaFala) setTimeout(() => falar(ultimaFala), 1500);
   }
+  // Resumo no início da viagem: paradas + chegada final (estimada).
+  let resumoFalado = false, splashTocado = false;
+  function falarResumoViagem() {
+    if (resumoFalado || cfg.falarNomes === false) return;
+    const comp = horariosCompletos();
+    if (comp.length < 2) return;
+    resumoFalado = true;
+    const origem = comp[0].nome, final = comp[comp.length - 1];
+    const meio = comp.slice(0, -1).map((p) => p.nome + (p.hora ? (', ' + horaFalada(p.hora)) : '')).join('. ');
+    let txt = 'Início da viagem de ' + origem + ' para ' + final.nome + '. Paradas: ' + meio + '.';
+    if (final.hora) txt += ' Chegada ' + (final.est ? 'prevista ' : '') + 'em ' + final.nome + ', ' + horaFalada(final.hora) + '.';
+    setTimeout(() => falar(txt), 700);
+  }
   let anuncioTimer = null;
   function fecharAnuncio() { clearTimeout(anuncioTimer); $('#anuncioBg').classList.remove('aberto'); }
   function agendarFechar(ms) { clearTimeout(anuncioTimer); anuncioTimer = setTimeout(fecharAnuncio, ms); }
-  function mostrarPopupAnuncio(cidade, hora, embarcam, descem) {
+  function mostrarPopupAnuncio(cidade, hora, embarcam, descem, prox) {
     const bg = $('#anuncioBg'); if (!bg) return;
     const bloco = (titulo, klass, gente) => gente.length ? `
       <div class="anuncio-grupo ${klass}">
@@ -476,6 +519,11 @@
     $('#anuncioListas').innerHTML =
       bloco('🛫 Embarque', 'emb', embarcam) +
       bloco('🛬 Desembarque', 'des', descem);
+    const elProx = $('#anuncioProx');
+    if (elProx) {
+      if (prox) { elProx.innerHTML = '➡️ Próxima: <b>' + prox.nome + '</b>' + (prox.hora ? ` · 🕐 ${prox.est ? '~' : ''}${prox.hora}` : ''); elProx.hidden = false; }
+      else { elProx.hidden = true; }
+    }
     bg.classList.add('aberto');
     agendarFechar(12000); // some sozinho depois de 12s
   }
@@ -693,6 +741,8 @@
       destravarElemento();  // destrava o elemento <audio> (foco de áudio p/ abaixar a música)
       inicioBg.classList.add('fechado');
       setTimeout(() => { inicioBg.style.display = 'none'; }, 450);
+      splashTocado = true;
+      falarResumoViagem();  // fala o resumo da viagem (paradas + chegada final)
     }, { once: true });
   }
 
@@ -748,6 +798,8 @@
         renderBanner();
         renderPassageiros();
         renderRota();
+        // Se o usuário já tocou "começar" mas a viagem só chegou agora, fala o resumo
+        if (splashTocado && !resumoFalado) falarResumoViagem();
       }
     } catch (e) { /* offline/erro: mantém o que já está na tela */ }
     finally {
