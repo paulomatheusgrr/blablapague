@@ -158,6 +158,7 @@
         <span class="ponto"></span>
         ${p.foto ? `<img class="foto" src="${p.foto}" alt="">` : `<div class="foto">📍</div>`}
         <div class="rotulo">${p.nome || ''}</div>
+        ${p.horario ? `<div class="hora-parada">🕐 ${p.horario}</div>` : ''}
       </div>`;
     }).join('');
     atualizarCarro(); // o innerHTML acima removeu o carrinho — reposiciona
@@ -434,14 +435,28 @@
     }
     falarNavegador(texto); // 3) reserva
   }
+  // "17:40" -> "17 e 40" / "17:00" -> "17 horas" (pra a voz ler natural)
+  function horaFalada(hhmm) {
+    if (!hhmm || hhmm.indexOf(':') < 0) return '';
+    const p = hhmm.split(':'); const H = parseInt(p[0], 10), M = parseInt(p[1], 10);
+    if (isNaN(H)) return '';
+    if (!M) return H + (H === 1 ? ' hora' : ' horas');
+    return H + ' e ' + M;
+  }
+  function horaDaCidade(cidade) {
+    const pr = (trip.paradas || []).find((p) => mesmaCidade(p.nome, cidade));
+    return pr && pr.horario ? pr.horario : '';
+  }
   let ultimaFala = ''; // guarda o texto do anúncio atual (p/ repetir no toque)
   function anunciarCidade(cidade, embarcam, descem) {
     tocarChimeAeroporto();
+    const hora = horaDaCidade(cidade);
     const partes = [];
-    if (embarcam.length) partes.push('Embarque em ' + cidade + '. ' + nomesFalados(embarcam));
-    if (descem.length) partes.push('Desembarque em ' + cidade + '. ' + nomesFalados(descem));
+    partes.push(hora ? ('Chegada em ' + cidade + ', ' + horaFalada(hora)) : ('Chegando em ' + cidade));
+    if (embarcam.length) partes.push('Embarque: ' + nomesFalados(embarcam));
+    if (descem.length) partes.push('Desembarque: ' + nomesFalados(descem));
     ultimaFala = partes.join('. ');
-    mostrarPopupAnuncio(cidade, embarcam, descem);
+    mostrarPopupAnuncio(cidade, hora, embarcam, descem);
     // Tenta falar sozinho DEPOIS do chime (funciona no PC; em alguns Androids
     // só sai no toque — por isso o popup também fala quando tocado).
     if (ultimaFala) setTimeout(() => falar(ultimaFala), 1500);
@@ -449,7 +464,7 @@
   let anuncioTimer = null;
   function fecharAnuncio() { clearTimeout(anuncioTimer); $('#anuncioBg').classList.remove('aberto'); }
   function agendarFechar(ms) { clearTimeout(anuncioTimer); anuncioTimer = setTimeout(fecharAnuncio, ms); }
-  function mostrarPopupAnuncio(cidade, embarcam, descem) {
+  function mostrarPopupAnuncio(cidade, hora, embarcam, descem) {
     const bg = $('#anuncioBg'); if (!bg) return;
     const bloco = (titulo, klass, gente) => gente.length ? `
       <div class="anuncio-grupo ${klass}">
@@ -457,7 +472,7 @@
         <div class="anuncio-gente">${gente.map((p) => `
           <div class="anuncio-pessoa">${avatarMini(p.nome, p.foto)}<span>${p.nome}</span></div>`).join('')}</div>
       </div>` : '';
-    $('#anuncioCidade').textContent = cidade;
+    $('#anuncioCidade').textContent = cidade + (hora ? '  ·  🕐 ' + hora : '');
     $('#anuncioListas').innerHTML =
       bloco('🛫 Embarque', 'emb', embarcam) +
       bloco('🛬 Desembarque', 'des', descem);

@@ -99,12 +99,18 @@ const forward = pax.length ? idxCidade(pax[0].embarque) <= idxCidade(pax[0].dest
 const cidades = [...new Set(pax.flatMap(r => [r.embarque, r.destino]))]
   .sort((a,b) => forward ? idxCidade(a)-idxCidade(b) : idxCidade(b)-idxCidade(a));
 
+// Horário (HH:MM) que o carro chega em cada cidade = embarque MAIS CEDO de
+// quem sobe ali. Cidade que é só destino (ninguém embarca) fica sem horário.
+const hhmm = (iso) => (iso && iso.indexOf('T') >= 0) ? iso.slice(iso.indexOf('T') + 1, iso.indexOf('T') + 6) : '';
+const horaCidade = {};
+pax.forEach((r) => { if (r.embarque && r.iso && (!horaCidade[r.embarque] || r.iso < horaCidade[r.embarque])) horaCidade[r.embarque] = r.iso; });
+
 const trip = {
   origem: cidades[0] || '',
   destino: cidades[cidades.length-1] || '',
   dataHora: escolhida ? inicioDe(escolhida) : '',
-  paradas: cidades.map(nome => ({ nome, foto: '' })),
-  passageiros: pax.map((r,i) => ({ id:'p'+(i+1), nome:r.nome, foto:r.foto||'', embarque:r.embarque, destino:r.destino, valor:r.valor, telefone:'', status:'pendente', pagoEm:null }))
+  paradas: cidades.map(nome => ({ nome, foto: '', horario: hhmm(horaCidade[nome]) })),
+  passageiros: pax.map((r,i) => ({ id:'p'+(i+1), nome:r.nome, foto:r.foto||'', embarque:r.embarque, destino:r.destino, horario:hhmm(r.iso), valor:r.valor, telefone:'', status:'pendente', pagoEm:null }))
 };
 
 return [{ json: { trip } }];
