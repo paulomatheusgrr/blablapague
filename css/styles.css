@@ -340,23 +340,30 @@ body {
    apertamos o cabeçalho/rodapé e priorizamos os cards dos passageiros.
    ========================================================================== */
 @media (max-height: 820px) {
-  :root { font-size: clamp(12px, 1.35vw, 16px); }
-  .topo { padding: 0.6rem clamp(0.8rem, 3vw, 2rem) 0.3rem; }
-  .topo h1 { font-size: clamp(1.2rem, 3.2vw, 1.9rem); }
-  .topo p { font-size: 0.9rem; margin-top: 0.15rem; }
-  .rota-banner { margin-top: 0.5rem; padding: 0.4rem 0.9rem; gap: 0.5rem; border-radius: 14px; }
-  .grade { padding: 0.6rem clamp(0.7rem, 2.5vw, 1.4rem); gap: 0.6rem; }
-  .passageiro { padding: 0.55rem 0.45rem 0.5rem; border-radius: 16px; }
-  .avatar { width: clamp(50px, 6.2vw, 78px); height: clamp(50px, 6.2vw, 78px); margin-bottom: 0.3rem; font-size: clamp(1.3rem, 3.4vw, 1.9rem); }
-  .passageiro .nome { font-size: 1.05rem; margin: 0.08rem 0; }
-  .passageiro .preco { font-size: 0.9rem; }
-  .destino-card { font-size: 0.78rem; margin-top: 0.15rem; }
-  .rota-sec { padding-bottom: 0.8rem; }
-  .paradas { padding-top: 2.4rem; }
-  .parada { min-width: 110px; padding-top: 1rem; }
-  .parada .foto { width: 46px; height: 46px; }
-  .mini-avatar { width: 30px; height: 30px; }
-  .avaliar-lembrete { margin: 0 auto 0.6rem; padding: 0.45rem 1rem; font-size: 0.82rem; border-radius: 12px; }
+  /* Tela do carro (16:9): tudo GRANDE e legível de longe. A fonte-raiz sobe
+     (a maioria dos tamanhos usa rem e cresce junto) + avatares/fotos maiores. */
+  :root { font-size: clamp(17px, 2vw, 25px); }
+  .topo { padding: 0.4rem clamp(0.8rem, 3vw, 2rem) 0.2rem; }
+  .topo h1 { font-size: clamp(1.4rem, 3.2vw, 2.3rem); }
+  .topo p { display: none; }
+  .rota-banner { margin-top: 0.35rem; padding: 0.45rem 1.1rem; gap: 0.6rem; border-radius: 16px; }
+  .rota-banner .cidade { font-size: 1.1rem; }
+  .grade { padding: 0.4rem clamp(0.7rem, 2.5vw, 1.4rem); gap: 0.6rem; align-content: center; }
+  .passageiro { padding: 0.6rem 0.5rem 0.55rem; border-radius: 18px; }
+  .avatar { width: clamp(72px, 7.6vw, 102px); height: clamp(72px, 7.6vw, 102px); margin-bottom: 0.25rem; font-size: clamp(1.9rem, 4vw, 2.6rem); }
+  .passageiro .nome { font-size: 1.15rem; margin: 0.08rem 0; }
+  .passageiro .preco { font-size: 1rem; }
+  .destino-card { font-size: 0.8rem; margin-top: 0.12rem; }
+  .rota-sec { padding-bottom: 0.3rem; }
+  .paradas { padding-top: 1.6rem; padding-bottom: 0.1rem; }
+  .parada { min-width: 110px; padding-top: 0.6rem; }
+  .parada .foto { width: 52px; height: 52px; font-size: 1.4rem; }
+  .parada .ponto { width: 16px; height: 16px; }
+  .parada .rotulo { font-size: 0.95rem; }
+  .parada .hora-parada { font-size: 0.92rem; }
+  .baloes { gap: 4px; }
+  .mini-avatar { width: 36px; height: 36px; }
+  .avaliar-lembrete { margin: 0 auto 0.4rem; padding: 0.4rem 1rem; font-size: 0.82rem; }
 }
 
 /* Telas baixas (multimídia do carro): tudo numa tela só, porém com elementos

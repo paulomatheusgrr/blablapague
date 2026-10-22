@@ -499,6 +499,9 @@
     if (comp.length < 2) return;
     resumoFalado = true;
     const origem = comp[0].nome, final = comp[comp.length - 1];
+    // Evita 2 vozes no começo: o resumo já cobre a origem, então não deixa o
+    // anúncio automático da cidade de origem falar por cima.
+    cidadeAnunciada = origem;
     const meio = comp.slice(0, -1).map((p) => p.nome + (p.hora ? (', ' + horaFalada(p.hora)) : '')).join('. ');
     let txt = 'Início da viagem de ' + origem + ' para ' + final.nome + '. Paradas: ' + meio + '.';
     if (final.hora) txt += ' Chegada ' + (final.est ? 'prevista ' : '') + 'em ' + final.nome + ', ' + horaFalada(final.hora) + '.';
