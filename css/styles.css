@@ -393,7 +393,8 @@ body {
   .parada:not(:last-child)::after { top: 0.45rem; }
   .baloes { gap: 4px; }
   .mini-avatar { width: 28px; height: 28px; font-size: 0.68rem; border-width: 2px; }
-  .carro-rota { font-size: 1.65rem; }
+  .carro-rota { font-size: 2rem; }
+  .rota-progresso { height: 7px; }
 }
 
 /* -------- Carro ao vivo na rota (geolocalização) -------- */
@@ -402,13 +403,36 @@ body {
   /* scaleX(-1): espelha o 🚗 (que por padrão aponta pra esquerda) pra
      apontar no sentido da viagem (esquerda → direita na linha). */
   transform: translate(-50%, -50%) scaleX(-1);
-  font-size: 1.9rem;
+  font-size: 2.4rem;
   line-height: 1;
   transition: left 1.5s ease;
   z-index: 4;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
   pointer-events: none;
 }
+/* Barra de progresso (de onde o carro já passou) — tipo "carregando" */
+.rota-progresso {
+  position: absolute;
+  height: 9px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  z-index: 1;
+  background: linear-gradient(90deg, var(--verde) 0%, #37c6ff 100%);
+  box-shadow: 0 0 14px rgba(55, 198, 255, 0.7);
+  transition: width 1.5s ease, left 1.5s ease;
+  overflow: hidden;
+  animation: progPulsa 1.3s ease-in-out infinite;
+}
+.rota-progresso::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: linear-gradient(45deg, rgba(255,255,255,0.4) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.4) 75%, transparent 75%, transparent);
+  background-size: 24px 24px;
+  animation: progListra 0.55s linear infinite;
+}
+@keyframes progListra { from { background-position: 0 0; } to { background-position: 24px 0; } }
+@keyframes progPulsa { 0%, 100% { box-shadow: 0 0 10px rgba(55,198,255,0.6); } 50% { box-shadow: 0 0 20px rgba(55,198,255,0.95); } }
+@media (prefers-reduced-motion: reduce) { .rota-progresso, .rota-progresso::after { animation: none; } }
 /* O emoji balança como se estivesse dirigindo (bob + wobble) — o transform
    de posição/espelho fica no .carro-rota, então aqui podemos animar livre. */
 .carro-emoji {

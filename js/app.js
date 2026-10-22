@@ -229,8 +229,17 @@
     // a última parada continue sendo :last-child (senão sobra linha após o destino).
     if (!carro) { carro = document.createElement('div'); carro.id = 'carroRota'; carro.className = 'carro-rota'; carro.innerHTML = '<span class="carro-emoji">🚗</span>'; box.insertBefore(carro, box.firstChild); }
     const dot0 = box.querySelector('.parada .ponto');
-    carro.style.top = (dot0 ? dot0.parentElement.offsetTop + dot0.offsetTop + dot0.offsetHeight / 2 : 20) + 'px';
+    const yLinha = (dot0 ? dot0.parentElement.offsetTop + dot0.offsetTop + dot0.offsetHeight / 2 : 20);
+    carro.style.top = yLinha + 'px';
     carro.style.left = x + 'px';
+
+    // Barra de progresso (do 1º ponto até o carro) — tipo "carregando"
+    let prog = box.querySelector('#progressoRota');
+    if (!prog) { prog = document.createElement('div'); prog.id = 'progressoRota'; prog.className = 'rota-progresso'; box.insertBefore(prog, box.firstChild); }
+    const x0 = cx(els[0]); // centro do 1º ponto (início da linha)
+    prog.style.top = yLinha + 'px';
+    prog.style.left = x0 + 'px';
+    prog.style.width = Math.max(0, x - x0) + 'px';
 
     const cidadeAtual = perto.dist <= RAIO_CHEGADA ? perto.nome : null;
     box.querySelectorAll('.ponto').forEach((d, i) => d.classList.toggle('chegou', !!cidadeAtual && i === perto.i));
