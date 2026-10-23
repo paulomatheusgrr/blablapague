@@ -28,7 +28,9 @@
     // ex.: 0.85 = tudo menor (cabe mais), 1.15 = tudo maior.
     zoom: 1,
     // Mostra o carrinho ao vivo na rota (usa a localização do navegador). false = desliga.
-    rastrearCarro: true
+    rastrearCarro: true,
+    // 🎮 Botão "Jogar": pacote do app Android a abrir (ex.: melonDS). '' = esconde.
+    jogoPackage: 'me.magnum.melonds'
   };
 
   // Viagem de exemplo (sem fotos externas: usamos as iniciais como avatar)

@@ -20,6 +20,15 @@ window.BLABLA_CONFIG = {
   // 🚗 Carrinho ao vivo na rota (localização do navegador). false = desliga.
   rastrearCarro: true,
 
+  // 🎮 Botão "Jogar" (abre um app Android na multimídia). Informe o PACOTE do
+  //    app; '' esconde o botão. Ex.: melonDS = 'me.magnum.melonds'.
+  //    (Dica: pra descobrir o pacote, veja a URL do app na Play Store:
+  //     .../store/apps/details?id=PACOTE). Pra abrir em tela dividida, deixe o
+  //    navegador em split-screen antes — o botão abre o jogo no outro lado.
+  jogoPackage: 'me.magnum.melonds',
+  // Opcional: sobrescreve com um link/Intent completo (ex.: 'waze://?...').
+  // jogoUrl: '',
+
   // 🔔 Ao chegar na cidade: som de aeroporto (somEmbarque) e falar os nomes
   //    de quem embarca/desembarca (falarNomes). false em qualquer um desliga.
   somEmbarque: true,

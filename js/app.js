@@ -742,6 +742,24 @@
   // Tenta entrar em tela cheia no 1º toque (precisa de gesto do usuário)
   document.addEventListener('click', () => { if (!emFullscreen()) toggleFullscreen(); }, { once: true });
 
+  // -------- Botão "Jogar" (abre um app do Android, ex.: melonDS) --------
+  function urlDoJogo() {
+    if (cfg.jogoUrl) return cfg.jogoUrl; // override total (ex.: waze://..., outro app)
+    const pkg = (cfg.jogoPackage || '').trim();
+    if (!pkg) return '';
+    // Intent do Chrome Android: abre a activity principal do app.
+    // launchFlags = NEW_TASK(0x10000000) | LAUNCH_ADJACENT(0x1000): se o navegador
+    // já estiver em tela dividida, abre no OUTRO lado; senão, abre em tela cheia.
+    return 'intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=' + pkg + ';launchFlags=0x10001000;end';
+  }
+  (function () {
+    const b = $('#btnJogar'); if (!b) return;
+    const url = urlDoJogo();
+    if (!url) { b.hidden = true; return; }
+    b.hidden = false;
+    b.addEventListener('click', (e) => { e.preventDefault(); try { window.location.href = url; } catch (err) {} });
+  })();
+
   // -------- Tela inicial "Toque para começar" --------
   // 1 toque libera tudo de uma vez (exigência do navegador): som, voz e tela cheia.
   const inicioBg = $('#inicioBg');
