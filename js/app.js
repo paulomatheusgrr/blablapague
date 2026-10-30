@@ -482,6 +482,13 @@
     }
     return out;
   }
+  // "um ótimo dia" / "uma ótima tarde" / "uma ótima noite" conforme a hora atual
+  function periodoDia() {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) return 'um ótimo dia';
+    if (h >= 12 && h < 18) return 'uma ótima tarde';
+    return 'uma ótima noite';
+  }
   let ultimaFala = ''; // guarda o texto do anúncio atual (p/ repetir no toque)
   function anunciarCidade(cidade, embarcam, descem) {
     tocarChimeAeroporto();
@@ -494,9 +501,9 @@
     if (embarcam.length) partes.push('Embarque: ' + nomesFalados(embarcam));
     if (descem.length) {
       partes.push('Desembarque: ' + nomesFalados(descem));
-      // Agradecimento caloroso a quem está descendo
+      // Agradecimento a quem está descendo (dia/tarde/noite conforme a hora)
       const plural = descem.length > 1;
-      partes.push('Obrigado pela companhia, ' + nomesFalados(descem) + '! ' + (plural ? 'Tenham' : 'Tenha') + ' uma ótima viagem e até a próxima.');
+      partes.push('Obrigado pela companhia. ' + (plural ? 'Tenham' : 'Tenha') + ' ' + periodoDia() + ' e até a próxima.');
     }
     if (prox) partes.push('Próxima parada: ' + prox.nome + (prox.hora ? (', ' + (prox.est ? 'previsão ' : '') + horaFalada(prox.hora)) : ''));
     ultimaFala = partes.join('. ');
