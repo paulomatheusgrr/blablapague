@@ -492,7 +492,12 @@
     const partes = [];
     partes.push(hora ? ('Chegada em ' + cidade + ', ' + horaFalada(hora)) : ('Chegando em ' + cidade));
     if (embarcam.length) partes.push('Embarque: ' + nomesFalados(embarcam));
-    if (descem.length) partes.push('Desembarque: ' + nomesFalados(descem));
+    if (descem.length) {
+      partes.push('Desembarque: ' + nomesFalados(descem));
+      // Agradecimento caloroso a quem está descendo
+      const plural = descem.length > 1;
+      partes.push('Obrigado pela companhia, ' + nomesFalados(descem) + '! ' + (plural ? 'Tenham' : 'Tenha') + ' uma ótima viagem e até a próxima.');
+    }
     if (prox) partes.push('Próxima parada: ' + prox.nome + (prox.hora ? (', ' + (prox.est ? 'previsão ' : '') + horaFalada(prox.hora)) : ''));
     ultimaFala = partes.join('. ');
     mostrarPopupAnuncio(cidade, hora, embarcam, descem, prox);
