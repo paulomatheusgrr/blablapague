@@ -5,7 +5,7 @@
   <meta http-equiv="Cache-Control" content="no-cache" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BlaBlaPague — Pagamento da viagem</title>
-  <link rel="stylesheet" href="css/styles.css?v=28" />
+  <link rel="stylesheet" href="css/styles.css?v=29" />
 </head>
 <body>
   <!-- Tela inicial: 1 toque ativa som, voz e tela cheia (exigência do navegador) -->
@@ -115,11 +115,25 @@
     </div>
   </div>
 
+  <!-- Carrossel de propaganda (surge de tempos em tempos e some sozinho) -->
+  <div class="promo" id="promo" aria-hidden="true">
+    <div class="promo-card" id="promoCard">
+      <div class="promo-brilho"></div>
+      <div class="promo-emoji" id="promoEmoji">🎁</div>
+      <div class="promo-txt">
+        <div class="promo-titulo" id="promoTitulo"></div>
+        <div class="promo-sub" id="promoSub"></div>
+      </div>
+      <button class="promo-fechar" id="promoFechar" title="Fechar">✕</button>
+      <div class="promo-barra"><i id="promoBarra"></i></div>
+    </div>
+  </div>
+
   <!-- Bibliotecas locais -->
-  <script src="js/qrcode.js?v=28"></script>
-  <script src="js/pix.js?v=28"></script>
-  <script src="js/config.js?v=28"></script>
-  <script src="js/store.js?v=28"></script>
-  <script src="js/app.js?v=28"></script>
+  <script src="js/qrcode.js?v=29"></script>
+  <script src="js/pix.js?v=29"></script>
+  <script src="js/config.js?v=29"></script>
+  <script src="js/store.js?v=29"></script>
+  <script src="js/app.js?v=29"></script>
 </body>
 </html>

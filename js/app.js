@@ -760,6 +760,67 @@
     b.addEventListener('click', (e) => { e.preventDefault(); try { window.location.href = url; } catch (err) {} });
   })();
 
+  // -------- Carrossel de propaganda (popup animado, de tempos em tempos) --------
+  // Anúncios fixos (o motorista pode editar o texto aqui). `precisaJogo: true`
+  // só aparece se o botão "Jogar" estiver configurado (há app pra abrir).
+  const PROPAGANDAS = [
+    { emoji: '🎮', cor: '#8b5cf6', titulo: 'Tédio? Bora jogar!', texto: 'Pega o controle Bluetooth e joga no videogame da multimídia durante a viagem. 😎', precisaJogo: true },
+    { emoji: '🔄', cor: '#2a6df4', titulo: 'Precisa voltar?', texto: 'Reserve sua volta comigo aqui mesmo na BlaBlaCar — é só procurar meu perfil!' },
+    { emoji: '⭐', cor: '#f59e0b', titulo: 'Avalie 5 estrelas', texto: 'Se a viagem foi boa, 5 estrelas na BlaBlaCar fazem toda a diferença pra mim. Obrigado! 🙏' },
+    { emoji: '💧', cor: '#17b978', titulo: 'Fique à vontade', texto: 'Precisa de carregador ou abaixar o ar? É só pedir. Boa viagem! 😊' },
+    { emoji: '🎶', cor: '#0ea5e9', titulo: 'Sua música', texto: 'Quer ouvir alguma música na viagem? Me fala o nome que eu coloco pra tocar.' }
+  ];
+  const PROMO_INTERVALO = (cfg.propagandaIntervalo > 0 ? cfg.propagandaIntervalo : 150000); // entre um popup e outro (padrão 2,5 min)
+  const PROMO_DURACAO   = (cfg.propagandaDuracao   > 0 ? cfg.propagandaDuracao   : 9000);    // tempo na tela (padrão 9 s)
+  let promoIdx = 0, promoHideTimer = null, promoNextTimer = null, promoVivo = false;
+
+  function promoDisponiveis() {
+    const temJogo = !!urlDoJogo();
+    return PROPAGANDAS.filter((a) => !a.precisaJogo || temJogo);
+  }
+  // Não mostra por cima de um pagamento, anúncio de cidade, agradecimento ou splash
+  function promoOcupado() {
+    return !splashTocado
+      || document.hidden
+      || $('#modalBg').classList.contains('aberto')
+      || $('#anuncioBg').classList.contains('aberto')
+      || $('#avaliarBg').classList.contains('aberto');
+  }
+  function fecharPromo() {
+    clearTimeout(promoHideTimer);
+    const el = $('#promo'); if (!el || !promoVivo) return;
+    promoVivo = false;
+    el.classList.add('saindo');
+    setTimeout(() => { el.classList.remove('aberto', 'saindo'); el.setAttribute('aria-hidden', 'true'); }, 420);
+  }
+  function mostrarPromo() {
+    const lista = promoDisponiveis();
+    if (!lista.length) return;
+    const a = lista[promoIdx % lista.length]; promoIdx++;
+    const el = $('#promo'), card = $('#promoCard');
+    if (!el || !card) return;
+    card.style.setProperty('--promo-cor', a.cor || '#2a6df4');
+    el.style.setProperty('--promo-dur', (PROMO_DURACAO / 1000) + 's');
+    $('#promoEmoji').textContent = a.emoji || '🎁';
+    $('#promoTitulo').textContent = a.titulo || '';
+    $('#promoSub').textContent = a.texto || '';
+    el.classList.remove('saindo'); el.classList.add('aberto'); el.setAttribute('aria-hidden', 'false');
+    promoVivo = true;
+    clearTimeout(promoHideTimer);
+    promoHideTimer = setTimeout(fecharPromo, PROMO_DURACAO);
+  }
+  function agendarPromo() {
+    clearTimeout(promoNextTimer);
+    promoNextTimer = setTimeout(function tick() {
+      if (cfg.propagandaAtiva === false) { promoNextTimer = setTimeout(tick, PROMO_INTERVALO); return; }
+      if (promoOcupado()) { promoNextTimer = setTimeout(tick, 15000); return; } // ocupado agora: tenta de novo em 15s
+      mostrarPromo();
+      promoNextTimer = setTimeout(tick, PROMO_DURACAO + PROMO_INTERVALO); // próximo ciclo depois que este sumir
+    }, PROMO_INTERVALO);
+  }
+  $('#promoFechar').addEventListener('click', (e) => { e.stopPropagation(); fecharPromo(); });
+  $('#promo').addEventListener('click', fecharPromo); // tocar no cartão também fecha
+
   // -------- Tela inicial "Toque para começar" --------
   // 1 toque libera tudo de uma vez (exigência do navegador): som, voz e tela cheia.
   const inicioBg = $('#inicioBg');
@@ -852,6 +913,7 @@
   renderRota();
   manterTelaAcesa();
   iniciarGeo();
+  agendarPromo();
   sincronizar();
   setInterval(sincronizar, 1800000); // a cada 30 min (o botão 🔄 força na hora, se precisar)
 })();

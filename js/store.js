@@ -30,7 +30,11 @@
     // Mostra o carrinho ao vivo na rota (usa a localização do navegador). false = desliga.
     rastrearCarro: true,
     // 🎮 Botão "Jogar": pacote do app Android a abrir (ex.: melonDS). '' = esconde.
-    jogoPackage: 'me.magnum.melonds'
+    jogoPackage: 'me.magnum.melonds',
+    // 📣 Carrossel de propaganda (popup que surge de tempos em tempos).
+    propagandaAtiva: true,        // false = desliga os popups
+    propagandaIntervalo: 150000,  // tempo ENTRE um popup e outro (ms) — padrão 2,5 min
+    propagandaDuracao: 9000       // tempo que o popup fica na tela (ms) — padrão 9 s
   };
 
   // Viagem de exemplo (sem fotos externas: usamos as iniciais como avatar)
