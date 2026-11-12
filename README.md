@@ -1,12 +1,20 @@
 # 🚗 BlaBlaPague — Kiosk de pagamento PIX para caronas
 
-Página para deixar aberta num **tablet** durante a viagem. O passageiro toca na
-própria foto, aparece um **QR Code PIX** com o valor já preenchido para a sua
-conta, ele paga e a tela mostra **"✓ Pago"** com uma animação divertida.
-Também mostra a rota e as paradas.
+Página para deixar aberta num **tablet** (ou na multimídia do carro) durante a
+viagem. O passageiro toca na própria foto, aparece um **QR Code PIX** com o
+valor já preenchido para a sua conta, ele paga e a tela mostra **"✓ Pago"** com
+uma animação divertida. Também mostra a rota ao vivo, as paradas, anúncios de
+embarque por voz (mãos livres) e propagandas.
 
 Funciona **100% offline, sem servidor e sem instalar nada** — é só abrir o
 `index.html` no navegador do tablet.
+
+> **🛣️ Roadmap — virando produto (multi-motorista):** a versão atual é
+> single-user (configurada por aparelho). Está em andamento a transformação em
+> **SaaS multi-tenant**: cada motorista se cadastra com o e-mail, guarda a
+> própria configuração (chave PIX, carro, valores) num backend **Supabase** e o
+> kiosk carrega a config dele. O PIX continua sendo gerado no navegador. Veja
+> [`docs/MULTIUSER.md`](docs/MULTIUSER.md).
 
 ---
 
