@@ -55,6 +55,23 @@
       <div class="campo" style="max-width:200px"><label>Valor padrão (R$)</label><input id="valorPadrao" type="number" step="0.01" min="0" /></div>
     </div>
 
+    <div class="painel" id="painelKiosk">
+      <h2>📺 Kiosk no carro (abrir sem login)</h2>
+      <div class="campo">
+        <label>Código do kiosk</label>
+        <input id="kioskSlug" placeholder="ex.: paulo-botucatu" autocapitalize="off" autocomplete="off" />
+        <p class="hint">Letras, números e hífen. É o apelido do seu kiosk pra abrir no carro sem logar.</p>
+      </div>
+      <div class="campo">
+        <label>Link pra abrir na multimídia do carro</label>
+        <div style="display:flex;gap:.5rem">
+          <input id="kioskLink" readonly placeholder="salve um código acima primeiro" />
+          <button class="btn btn-azul btn-sm" id="btnCopiarLink" type="button" style="flex:0 0 auto">Copiar</button>
+        </div>
+        <p class="hint">💡 Como usar: configure tudo aqui no celular → <b>Salvar</b> → copie este link e abra <b>uma vez</b> no navegador do carro (salve nos favoritos). O carro mostra sua config e gera o PIX, sem login.</p>
+      </div>
+    </div>
+
     <div class="painel">
       <h2>🚗 Carro & confirmação por WhatsApp</h2>
       <div class="grid2">
@@ -103,9 +120,9 @@
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=33"></script>
-  <script src="js/supa.js?v=33"></script>
-  <script src="js/store.js?v=33"></script>
-  <script src="js/admin.js?v=33"></script>
+  <script src="js/config.js?v=34"></script>
+  <script src="js/supa.js?v=34"></script>
+  <script src="js/store.js?v=34"></script>
+  <script src="js/admin.js?v=34"></script>
 </body>
 </html>

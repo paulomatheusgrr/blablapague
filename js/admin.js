@@ -20,6 +20,23 @@
     $('#carroPlaca').value = cfg.carroPlaca || '';
     $('#n8nWebhookUrl').value = cfg.n8nWebhookUrl || '';
     $('#viagemFeedUrl').value = cfg.viagemFeedUrl || '';
+    $('#kioskSlug').value = cfg.slug || '';
+    atualizarLink();
+  }
+
+  // -------- Código/link do kiosk (abrir no carro sem login) --------
+  function limparSlug(s) {
+    return String(s || '').trim().toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')  // tira acentos
+      .replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  }
+  function linkKiosk(slug) {
+    const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+    return base + 'index.html?k=' + encodeURIComponent(slug);
+  }
+  function atualizarLink() {
+    const slug = limparSlug($('#kioskSlug').value);
+    $('#kioskLink').value = slug ? linkKiosk(slug) : '';
   }
 
   // -------- Salvar / ações --------
@@ -35,7 +52,8 @@
       carroCor: $('#carroCor').value.trim(),
       carroPlaca: $('#carroPlaca').value.trim(),
       n8nWebhookUrl: $('#n8nWebhookUrl').value.trim(),
-      viagemFeedUrl: $('#viagemFeedUrl').value.trim()
+      viagemFeedUrl: $('#viagemFeedUrl').value.trim(),
+      slug: limparSlug($('#kioskSlug').value) || null
     });
   }
 
@@ -58,9 +76,15 @@
       btn.disabled = true; btn.textContent = 'Salvando…';
       try {
         await BlaBlaSupa.saveConfig(cfg);
+        $('#kioskSlug').value = cfg.slug || ''; atualizarLink();
         toast('Salvo na sua conta ✅ (vale em todos os aparelhos).');
       } catch (e) {
-        toast('Salvo neste aparelho, mas falhou na nuvem: ' + (e && e.message ? e.message : e));
+        const msg = (e && (e.message || e.code)) ? (e.message || e.code) : String(e);
+        if (/duplicate|23505|unique/i.test(msg)) {
+          toast('⚠️ Esse código de kiosk já está em uso. Escolha outro.');
+        } else {
+          toast('Salvo neste aparelho, mas falhou na nuvem: ' + msg);
+        }
       } finally { btn.disabled = false; btn.textContent = txt; }
     } else {
       toast('Salvo neste aparelho ✅');
@@ -72,6 +96,14 @@
 
   $('#salvar').addEventListener('click', salvar);
   $('#zerar').addEventListener('click', () => { Store.resetPayments(); toast('Pagamentos zerados no aparelho.'); });
+  $('#kioskSlug').addEventListener('input', atualizarLink);
+  $('#btnCopiarLink').addEventListener('click', () => {
+    const v = $('#kioskLink').value;
+    if (!v) { toast('Escolha um código e salve primeiro.'); return; }
+    const done = () => toast('Link copiado! Abra no navegador do carro.');
+    if (navigator.clipboard) navigator.clipboard.writeText(v).then(done, () => { $('#kioskLink').select(); document.execCommand('copy'); done(); });
+    else { $('#kioskLink').select(); document.execCommand('copy'); done(); }
+  });
 
   // -------- Confirmar viagem (WhatsApp via n8n + Evolution API) --------
   const soDigitos = (t) => String(t || '').replace(/\D/g, '');

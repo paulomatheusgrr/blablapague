@@ -919,12 +919,25 @@
   });
 
   // -------- Config do motorista (multi-user) --------
-  // Se o motorista estiver logado (Supabase), a config da CONTA dele é a fonte da
-  // verdade e fica cacheada no aparelho. Offline/sem login = usa o cache/config.js.
+  // Código do kiosk (pra abrir no carro sem login): vem de ?k=CODIGO na URL e
+  // fica guardado, pra reabrir depois sem o parâmetro.
+  function kioskSlug() {
+    try {
+      const u = new URL(location.href);
+      const s = (u.searchParams.get('k') || '').trim();
+      if (s) { try { localStorage.setItem('blablacar_kiosk_slug', s); } catch (e) {} return s; }
+      return localStorage.getItem('blablacar_kiosk_slug') || '';
+    } catch (e) { return ''; }
+  }
+  // Fonte da config: (1) conta logada → (2) código do kiosk → (3) cache/config.js.
+  // Sempre cacheia e nunca trava o kiosk (offline mantém o que já tem).
   async function carregarConfigNuvem() {
     if (!(window.BlaBlaSupa && BlaBlaSupa.ready())) return;
     try {
-      const nuvem = await BlaBlaSupa.loadConfig();
+      let nuvem = null;
+      const sess = await BlaBlaSupa.getSession();
+      if (sess) nuvem = await BlaBlaSupa.loadConfig();        // motorista logado (ex.: no celular)
+      else { const s = kioskSlug(); if (s) nuvem = await BlaBlaSupa.loadConfigBySlug(s); } // carro, por código
       if (!nuvem) return;
       cfg = Object.assign({}, cfg, nuvem);
       try { Store.setConfig(cfg); } catch (e) {}

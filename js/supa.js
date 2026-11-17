@@ -35,7 +35,7 @@
   const COLS = {
     pixKey: 'pix_key', merchantName: 'merchant_name', merchantCity: 'merchant_city',
     valorPadrao: 'valor_padrao', carroModelo: 'carro_modelo', carroCor: 'carro_cor',
-    carroPlaca: 'carro_placa'
+    carroPlaca: 'carro_placa', slug: 'slug'
   };
   // Nunca persistir estas (são chaves públicas do deploy, não do motorista).
   const NUNCA = { supabaseUrl: 1, supabaseAnonKey: 1 };
@@ -50,6 +50,7 @@
     if (row.carro_modelo != null) cfg.carroModelo = row.carro_modelo;
     if (row.carro_cor != null) cfg.carroCor = row.carro_cor;
     if (row.carro_placa != null) cfg.carroPlaca = row.carro_placa;
+    if (row.slug != null) cfg.slug = row.slug;
     return cfg;
   }
   function cfgToRow(cfg) {
@@ -93,6 +94,17 @@
         if (error) { console.warn('[supa] loadConfig:', error.message); return null; }
         return rowToCfg(data);
       } catch (e) { console.warn('[supa] loadConfig:', e.message); return null; }
+    },
+    // Kiosk PÚBLICO: lê a config pelo CÓDIGO (slug), SEM login (uso no carro).
+    // Devolve só os campos do kiosk (nunca o e-mail). null = código inexistente.
+    async loadConfigBySlug(slug) {
+      const c = getClient(); if (!c || !slug) return null;
+      try {
+        const { data, error } = await c.rpc('kiosk_by_slug', { p_slug: slug });
+        if (error) { console.warn('[supa] kiosk_by_slug:', error.message); return null; }
+        const row = Array.isArray(data) ? data[0] : data;
+        return row ? rowToCfg(row) : null;
+      } catch (e) { console.warn('[supa] kiosk_by_slug:', e.message); return null; }
     },
     // Salva (upsert) a config do motorista logado.
     async saveConfig(cfg) {

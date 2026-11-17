@@ -64,8 +64,13 @@ client, acessa-se com `supabase.schema('blablapague')`.
 
 - **Fase 0 — Fundação** *(✅ feito)*: schema `blablapague`, tabela `drivers`,
   RLS own-row, trigger de updated_at e criação automática da linha no signup.
-- **Fase 1 — MVP multi-user**: tela de login/cadastro, Admin grava no Supabase,
-  kiosk lê a config do motorista logado, viagens manuais. ➡️ **shippable**.
+- **Fase 1 — MVP multi-user** *(✅ feito)*: login por magic link, Admin grava no
+  Supabase, kiosk lê a config do motorista logado, viagens manuais.
+- **Fase 1.5 — Kiosk no carro sem login** *(✅ feito)*: o motorista define um
+  **código** (`slug`) no Admin e abre `index.html?k=<código>` no navegador do
+  carro. O kiosk lê a config via função pública `kiosk_by_slug` (anon, só os
+  campos do kiosk, nunca o e-mail). Resolve o caso "cliquei no link mágico no
+  celular, mas o kiosk roda no carro".
 - **Fase 2 — Automação por motorista**: cada motorista pluga o próprio e-mail
   (encaminhamento pra um endereço único ou OAuth) e o parser roda por tenant.
 - **Fase 3 — Produto pago**: planos/cobrança (Stripe ou Mercado Pago), limites,
