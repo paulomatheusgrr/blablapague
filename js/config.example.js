@@ -7,6 +7,16 @@
  * Assim TODO dispositivo que abrir o app já vem configurado, sem salvar nada.
  */
 window.BLABLA_CONFIG = {
+  // 🏢 Backend multi-motorista (Supabase) — chaves PÚBLICAS (seguras no navegador).
+  //    Com isso o motorista entra com o e-mail (link mágico) e o kiosk carrega a
+  //    config DELE. As chaves abaixo são "publicáveis": podem ficar no código.
+  supabaseUrl: 'https://aplhxqxhffceqiyquqtk.supabase.co',
+  supabaseAnonKey: 'sb_publishable_ak51E4zYwzqmaFoLLqtpcA_vlHY1gDx',
+
+  // ── Config single-user (fallback) ──────────────────────────────────────────
+  //   Com o multi-motorista ligado, os campos abaixo (pixKey, nome, carro…)
+  //   passam a vir da CONTA do motorista no Supabase. Ficam aqui só como padrão
+  //   inicial / modo offline sem login.
   // 💸 Sua chave PIX (telefone no formato +55DDDNUMERO, email, CPF ou aleatória):
   pixKey: '',
   merchantName: 'Paulo',      // nome que aparece no comprovante do passageiro

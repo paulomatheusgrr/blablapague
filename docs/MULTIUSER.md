@@ -52,10 +52,18 @@ precisa ir pro navegador pra gerar o QR, então ela é "pública por natureza" n
 kiosk daquele motorista. Mantemos assim (é uma chave de recebimento, não um
 segredo). Nada de dados de passageiros no servidor por enquanto.
 
+## Onde roda (Supabase)
+
+Para reaproveitar a conta, o backend vive num **schema isolado `blablapague`**
+dentro do projeto **`vendas-unificadas`** (ref `aplhxqxhffceqiyquqtk`,
+`https://aplhxqxhffceqiyquqtk.supabase.co`) — separado das tabelas de vendas, com
+RLS próprio. O schema é exposto na API junto de `public` e `graphql_public`. No
+client, acessa-se com `supabase.schema('blablapague')`.
+
 ## Fases
 
-- **Fase 0 — Fundação** *(em andamento)*: projeto Supabase dedicado, tabela
-  `drivers`, RLS, Auth por magic link.
+- **Fase 0 — Fundação** *(✅ feito)*: schema `blablapague`, tabela `drivers`,
+  RLS own-row, trigger de updated_at e criação automática da linha no signup.
 - **Fase 1 — MVP multi-user**: tela de login/cadastro, Admin grava no Supabase,
   kiosk lê a config do motorista logado, viagens manuais. ➡️ **shippable**.
 - **Fase 2 — Automação por motorista**: cada motorista pluga o próprio e-mail
@@ -70,8 +78,8 @@ Supabase do projeto:
 
 ```js
 window.BLABLA_CONFIG = {
-  supabaseUrl: 'https://<ref>.supabase.co',
-  supabaseAnonKey: 'sb_publishable_...'   // chave publicável (segura no client)
+  supabaseUrl: 'https://aplhxqxhffceqiyquqtk.supabase.co',
+  supabaseAnonKey: 'sb_publishable_ak51E4zYwzqmaFoLLqtpcA_vlHY1gDx' // publicável
 };
 ```
 
