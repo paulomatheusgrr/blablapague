@@ -918,6 +918,21 @@
     resizeT = setTimeout(() => { equilibrarCards(); atualizarCarro(); }, 150);
   });
 
+  // -------- Config do motorista (multi-user) --------
+  // Se o motorista estiver logado (Supabase), a config da CONTA dele é a fonte da
+  // verdade e fica cacheada no aparelho. Offline/sem login = usa o cache/config.js.
+  async function carregarConfigNuvem() {
+    if (!(window.BlaBlaSupa && BlaBlaSupa.ready())) return;
+    try {
+      const nuvem = await BlaBlaSupa.loadConfig();
+      if (!nuvem) return;
+      cfg = Object.assign({}, cfg, nuvem);
+      try { Store.setConfig(cfg); } catch (e) {}
+      aplicarZoom();
+      renderBanner(); renderPassageiros(); renderRota();
+    } catch (e) { /* offline/erro: mantém o cache local */ }
+  }
+
   // -------- Início --------
   aplicarZoom();
   renderBanner();
@@ -926,6 +941,7 @@
   manterTelaAcesa();
   iniciarGeo();
   agendarPromo();
+  carregarConfigNuvem();
   sincronizar();
   setInterval(sincronizar, 1800000); // a cada 30 min (o botão 🔄 força na hora, se precisar)
 })();

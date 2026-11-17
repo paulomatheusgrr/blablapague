@@ -7,6 +7,7 @@
 
   let trip = Store.getTrip();
   let cfg = Store.getConfig();
+  let logado = false;
 
   // -------- Config --------
   function carregarConfig() {
@@ -22,8 +23,10 @@
   }
 
   // -------- Salvar / ações --------
+  // Mescla os campos do formulário SOBRE a cfg atual (preserva flags que não
+  // aparecem aqui: zoom, propaganda, voz, volume, jogo, etc.).
   function coletarConfig() {
-    cfg = {
+    cfg = Object.assign({}, cfg, {
       pixKey: $('#pixKey').value.trim(),
       merchantName: $('#merchantName').value.trim() || 'MOTORISTA',
       merchantCity: $('#merchantCity').value.trim() || 'CIDADE',
@@ -33,23 +36,35 @@
       carroPlaca: $('#carroPlaca').value.trim(),
       n8nWebhookUrl: $('#n8nWebhookUrl').value.trim(),
       viagemFeedUrl: $('#viagemFeedUrl').value.trim()
-    };
+    });
   }
 
-  function salvar() {
+  async function salvar() {
     coletarConfig();
+    // 1) Cache local (offline) — sempre.
     try {
       Store.setConfig(cfg);
     } catch (e) {
       toast('❌ Não consegui salvar (aba anônima ou memória cheia?): ' + e.message);
       return;
     }
-    // Confirma que persistiu de verdade (revela armazenamento bloqueado no celular)
     if (Store.getConfig().viagemFeedUrl !== cfg.viagemFeedUrl) {
       toast('⚠️ Não persistiu! Não use aba anônima e abra o app por um endereço (http), não como arquivo.');
       return;
     }
-    toast('Salvo! ✅ Endpoint gravado.');
+    // 2) Nuvem (conta do motorista), se logado.
+    if (window.BlaBlaSupa && BlaBlaSupa.ready() && logado) {
+      const btn = $('#salvar'); const txt = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Salvando…';
+      try {
+        await BlaBlaSupa.saveConfig(cfg);
+        toast('Salvo na sua conta ✅ (vale em todos os aparelhos).');
+      } catch (e) {
+        toast('Salvo neste aparelho, mas falhou na nuvem: ' + (e && e.message ? e.message : e));
+      } finally { btn.disabled = false; btn.textContent = txt; }
+    } else {
+      toast('Salvo neste aparelho ✅');
+    }
   }
 
   let toastT;
@@ -138,6 +153,32 @@
   $('#confEnviar').addEventListener('click', enviarConfirmacao);
   $('#confBg').addEventListener('click', (e) => { if (e.target.id === 'confBg') fecharConfirmacao(); });
 
-  // Início
-  carregarConfig();
+  // -------- Início: exige login quando o Supabase está disponível --------
+  async function init() {
+    const temSupa = !!(window.BlaBlaSupa && BlaBlaSupa.ready());
+    if (temSupa) {
+      let sess = null;
+      try { sess = await BlaBlaSupa.getSession(); } catch (e) {}
+      if (!sess) {
+        // Sem login → manda pra tela de entrar (a não ser que esteja offline).
+        if (navigator.onLine !== false) { location.href = 'login.html'; return; }
+      } else {
+        logado = true;
+        const u = sess.user || {};
+        $('#contaEmail').textContent = u.email || '';
+        $('#contaBar').style.display = 'flex';
+        $('#btnSair').addEventListener('click', async () => {
+          await BlaBlaSupa.signOut();
+          location.href = 'login.html';
+        });
+        // Carrega a config da conta e usa como fonte da verdade (cacheia local).
+        try {
+          const nuvem = await BlaBlaSupa.loadConfig();
+          if (nuvem) { cfg = Object.assign({}, cfg, nuvem); Store.setConfig(cfg); }
+        } catch (e) { /* offline: segue com o cache local */ }
+      }
+    }
+    carregarConfig();
+  }
+  init();
 })();
