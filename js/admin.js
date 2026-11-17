@@ -21,7 +21,19 @@
     $('#n8nWebhookUrl').value = cfg.n8nWebhookUrl || '';
     $('#viagemFeedUrl').value = cfg.viagemFeedUrl || '';
     $('#kioskSlug').value = cfg.slug || '';
+    $('#rota').value = Array.isArray(cfg.rota) ? cfg.rota.join(', ') : (cfg.rota || '');
     atualizarLink();
+    atualizarEndereco();
+  }
+
+  // -------- Viagens automáticas (endereço de encaminhamento) --------
+  const INGEST_DOMAIN = 'trips.solusimples.com.br';
+  function atualizarEndereco() {
+    const tok = cfg.ingestToken || '';
+    $('#ingestAddr').value = tok ? ('viagens+' + tok + '@' + INGEST_DOMAIN) : '';
+  }
+  function lerRota() {
+    return $('#rota').value.split(',').map((s) => s.trim()).filter(Boolean);
   }
 
   // -------- Código/link do kiosk (abrir no carro sem login) --------
@@ -53,7 +65,8 @@
       carroPlaca: $('#carroPlaca').value.trim(),
       n8nWebhookUrl: $('#n8nWebhookUrl').value.trim(),
       viagemFeedUrl: $('#viagemFeedUrl').value.trim(),
-      slug: limparSlug($('#kioskSlug').value) || null
+      slug: limparSlug($('#kioskSlug').value) || null,
+      rota: lerRota()
     });
   }
 
@@ -103,6 +116,13 @@
     const done = () => toast('Link copiado! Abra no navegador do carro.');
     if (navigator.clipboard) navigator.clipboard.writeText(v).then(done, () => { $('#kioskLink').select(); document.execCommand('copy'); done(); });
     else { $('#kioskLink').select(); document.execCommand('copy'); done(); }
+  });
+  $('#btnCopiarAddr').addEventListener('click', () => {
+    const v = $('#ingestAddr').value;
+    if (!v) { toast('Entre na sua conta primeiro.'); return; }
+    const done = () => toast('Endereço copiado! Configure o encaminhamento no seu e-mail.');
+    if (navigator.clipboard) navigator.clipboard.writeText(v).then(done, () => { $('#ingestAddr').select(); document.execCommand('copy'); done(); });
+    else { $('#ingestAddr').select(); document.execCommand('copy'); done(); }
   });
 
   // -------- Confirmar viagem (WhatsApp via n8n + Evolution API) --------

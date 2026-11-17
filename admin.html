@@ -72,6 +72,23 @@
       </div>
     </div>
 
+    <div class="painel" id="painelIngest">
+      <h2>📨 Viagens automáticas (encaminhar e-mail)</h2>
+      <div class="campo">
+        <label>Sua rota — cidades na ordem, da origem ao destino final</label>
+        <input id="rota" placeholder="ex.: Botucatu, São Manuel, Lençóis Paulista, Agudos, Bauru" />
+        <p class="hint">Separe por vírgula. É o que o sistema usa pra montar a viagem a partir dos e-mails da BlaBlaCar.</p>
+      </div>
+      <div class="campo">
+        <label>Encaminhe os e-mails da BlaBlaCar para este endereço</label>
+        <div style="display:flex;gap:.5rem">
+          <input id="ingestAddr" readonly placeholder="entre na sua conta pra gerar o endereço" />
+          <button class="btn btn-azul btn-sm" id="btnCopiarAddr" type="button" style="flex:0 0 auto">Copiar</button>
+        </div>
+        <p class="hint">💡 No Gmail: <b>Configurações → Encaminhamento</b> → adicione este endereço e crie um <b>filtro</b> (De: <code>@blablacar</code>) que encaminha pra ele. Aí suas viagens aparecem sozinhas no kiosk.</p>
+      </div>
+    </div>
+
     <div class="painel">
       <h2>🚗 Carro & confirmação por WhatsApp</h2>
       <div class="grid2">
@@ -120,9 +137,9 @@
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=34"></script>
-  <script src="js/supa.js?v=34"></script>
-  <script src="js/store.js?v=34"></script>
-  <script src="js/admin.js?v=34"></script>
+  <script src="js/config.js?v=35"></script>
+  <script src="js/supa.js?v=35"></script>
+  <script src="js/store.js?v=35"></script>
+  <script src="js/admin.js?v=35"></script>
 </body>
 </html>

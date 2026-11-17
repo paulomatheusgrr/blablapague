@@ -37,8 +37,8 @@
     valorPadrao: 'valor_padrao', carroModelo: 'carro_modelo', carroCor: 'carro_cor',
     carroPlaca: 'carro_placa', slug: 'slug'
   };
-  // Nunca persistir estas (são chaves públicas do deploy, não do motorista).
-  const NUNCA = { supabaseUrl: 1, supabaseAnonKey: 1 };
+  // Nunca persistir estas (chaves públicas do deploy, ou campos só-leitura do servidor).
+  const NUNCA = { supabaseUrl: 1, supabaseAnonKey: 1, ingestToken: 1 };
 
   function rowToCfg(row) {
     if (!row) return null;
@@ -51,6 +51,7 @@
     if (row.carro_cor != null) cfg.carroCor = row.carro_cor;
     if (row.carro_placa != null) cfg.carroPlaca = row.carro_placa;
     if (row.slug != null) cfg.slug = row.slug;
+    if (row.ingest_token != null) cfg.ingestToken = row.ingest_token; // só leitura
     return cfg;
   }
   function cfgToRow(cfg) {
@@ -94,6 +95,25 @@
         if (error) { console.warn('[supa] loadConfig:', error.message); return null; }
         return rowToCfg(data);
       } catch (e) { console.warn('[supa] loadConfig:', e.message); return null; }
+    },
+    // Viagem atual do motorista LOGADO (ex.: pré-visualizar no celular).
+    async loadMyTrip() {
+      const c = getClient(); if (!c) return null;
+      const sess = await this.getSession(); const u = sess && sess.user; if (!u) return null;
+      try {
+        const { data, error } = await c.from('drivers').select('current_trip').eq('id', u.id).maybeSingle();
+        if (error) { console.warn('[supa] loadMyTrip:', error.message); return null; }
+        return data ? data.current_trip : null;
+      } catch (e) { console.warn('[supa] loadMyTrip:', e.message); return null; }
+    },
+    // Viagem atual pelo CÓDIGO do kiosk (anon, no carro).
+    async loadTripBySlug(slug) {
+      const c = getClient(); if (!c || !slug) return null;
+      try {
+        const { data, error } = await c.rpc('kiosk_trip_by_slug', { p_slug: slug });
+        if (error) { console.warn('[supa] kiosk_trip_by_slug:', error.message); return null; }
+        return data || null;
+      } catch (e) { console.warn('[supa] kiosk_trip_by_slug:', e.message); return null; }
     },
     // Kiosk PÚBLICO: lê a config pelo CÓDIGO (slug), SEM login (uso no carro).
     // Devolve só os campos do kiosk (nunca o e-mail). null = código inexistente.

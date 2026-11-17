@@ -733,7 +733,7 @@
     if (b.classList.contains('girando')) return; // já está atualizando
     b.classList.add('girando');
     toast('🔄 Buscando a viagem…');
-    try { await sincronizar(); } catch (err) {}
+    try { await Promise.all([sincronizarSupabase(), sincronizar()]); } catch (err) {}
     b.classList.remove('girando');
     toast('Viagem atualizada ✅');
   });
@@ -865,48 +865,63 @@
   // Alguns navegadores só concedem após um gesto do usuário
   document.addEventListener('click', () => { if (!wakeLock) manterTelaAcesa(); }, { once: false });
 
-  // -------- Sincronização automática (E-mail → n8n → kiosk) --------
-  // Busca a viagem de um endpoint (n8n) e atualiza sozinho, preservando quem já pagou.
+  // Aplica uma viagem nova (do n8n OU do Supabase), preservando quem já pagou.
+  function aplicarViagemNova(nova) {
+    if (!nova || !Array.isArray(nova.passageiros)) return false;
+    // Preserva "pago" só se for a MESMA viagem (mesma data/hora). Se a viagem
+    // mudou (ex.: da ida para a volta, ou outro dia), zera — todos pendentes de novo.
+    const local = Store.getTrip();
+    const mesmaViagem = !!(local && nova.dataHora && local.dataHora === nova.dataHora);
+    const pagos = {};
+    if (mesmaViagem) {
+      (local.passageiros || []).forEach((p) => { if (p.status === 'pago') pagos[(p.nome || '').toLowerCase()] = p.pagoEm || new Date().toISOString(); });
+    }
+    nova.passageiros.forEach((p, i) => {
+      if (!p.id) p.id = 'p' + (i + 1);
+      const k = (p.nome || '').toLowerCase();
+      if (pagos[k]) { p.status = 'pago'; p.pagoEm = pagos[k]; }
+      else { p.status = p.status || 'pendente'; p.pagoEm = p.pagoEm || null; }
+    });
+    if (JSON.stringify(nova) !== JSON.stringify(local)) {
+      Store.setTrip(nova);
+      usarTrip(nova);
+      renderBanner(); renderPassageiros(); renderRota();
+      if (splashTocado && !resumoFalado) falarResumoViagem();
+      return true;
+    }
+    return false;
+  }
+
+  // -------- Sincronização automática (E-mail → n8n → kiosk) [legado single-user] --------
   async function sincronizar() {
+    if (fonteSupabaseTrip) return; // multi-user: a viagem vem do Supabase (por código/conta)
     if (!cfg.viagemFeedUrl) return;
     try {
-      // timeout de 90s: o n8n lê os e-mails e ficou lento (~50s); damos folga.
-      // O certo é o cache no n8n (resposta instantânea) — ver automacao/email-n8n.md.
       const ctrl = new AbortController();
       const prazo = setTimeout(() => ctrl.abort(), 90000);
       const resp = await fetch(cfg.viagemFeedUrl, { cache: 'no-store', signal: ctrl.signal }).finally(() => clearTimeout(prazo));
       if (!resp.ok) return;
       const data = await resp.json();
       const nova = data && data.trip ? data.trip : data;
-      if (!nova || !Array.isArray(nova.passageiros)) return;
-
-      // Preserva "pago" só se for a MESMA viagem (mesma data/hora). Se a viagem
-      // mudou (ex.: da ida para a volta, ou outro dia), zera — todos pendentes de novo.
-      const local = Store.getTrip();
-      const mesmaViagem = !!(local && nova.dataHora && local.dataHora === nova.dataHora);
-      const pagos = {};
-      if (mesmaViagem) {
-        (local.passageiros || []).forEach((p) => { if (p.status === 'pago') pagos[(p.nome || '').toLowerCase()] = p.pagoEm || new Date().toISOString(); });
-      }
-      nova.passageiros.forEach((p, i) => {
-        if (!p.id) p.id = 'p' + (i + 1);
-        const k = (p.nome || '').toLowerCase();
-        if (pagos[k]) { p.status = 'pago'; p.pagoEm = pagos[k]; }
-        else { p.status = p.status || 'pendente'; p.pagoEm = p.pagoEm || null; }
-      });
-
-      if (JSON.stringify(nova) !== JSON.stringify(local)) {
-        Store.setTrip(nova);       // guarda a viagem COMPLETA (do n8n)
-        usarTrip(nova);            // e exibe SEM os "não embarcou"
-        renderBanner();
-        renderPassageiros();
-        renderRota();
-        // Se o usuário já tocou "começar" mas a viagem só chegou agora, fala o resumo
-        if (splashTocado && !resumoFalado) falarResumoViagem();
-      }
+      aplicarViagemNova(nova);
     } catch (e) { /* offline/erro: mantém o que já está na tela */ }
     finally {
-      // Tira o "Carregando…" depois da 1ª tentativa (deu certo ou não)
+      if (feedPendente) { feedPendente = false; renderBanner(); renderPassageiros(); renderRota(); }
+    }
+  }
+
+  // -------- Sincronização multi-motorista (Supabase) --------
+  // Fonte da viagem quando o kiosk usa um CÓDIGO (carro) ou o motorista está logado.
+  async function sincronizarSupabase() {
+    if (!(window.BlaBlaSupa && BlaBlaSupa.ready())) return;
+    try {
+      let trip = null;
+      const sess = await BlaBlaSupa.getSession();
+      if (sess) trip = await BlaBlaSupa.loadMyTrip();
+      else { const s = kioskSlug(); if (s) trip = await BlaBlaSupa.loadTripBySlug(s); }
+      if (trip && Array.isArray(trip.passageiros)) aplicarViagemNova(trip);
+    } catch (e) { /* offline/erro: mantém o cache */ }
+    finally {
       if (feedPendente) { feedPendente = false; renderBanner(); renderPassageiros(); renderRota(); }
     }
   }
@@ -929,6 +944,10 @@
       return localStorage.getItem('blablacar_kiosk_slug') || '';
     } catch (e) { return ''; }
   }
+  // Quando o kiosk usa código (carro) ou conta logada, a viagem vem do Supabase
+  // (e o feed n8n legado é ignorado). Definido já de cara pelo código na URL.
+  let fonteSupabaseTrip = !!(window.BlaBlaSupa && BlaBlaSupa.ready() && kioskSlug());
+
   // Fonte da config: (1) conta logada → (2) código do kiosk → (3) cache/config.js.
   // Sempre cacheia e nunca trava o kiosk (offline mantém o que já tem).
   async function carregarConfigNuvem() {
@@ -936,7 +955,7 @@
     try {
       let nuvem = null;
       const sess = await BlaBlaSupa.getSession();
-      if (sess) nuvem = await BlaBlaSupa.loadConfig();        // motorista logado (ex.: no celular)
+      if (sess) { fonteSupabaseTrip = true; nuvem = await BlaBlaSupa.loadConfig(); } // motorista logado
       else { const s = kioskSlug(); if (s) nuvem = await BlaBlaSupa.loadConfigBySlug(s); } // carro, por código
       if (!nuvem) return;
       cfg = Object.assign({}, cfg, nuvem);
@@ -955,6 +974,8 @@
   iniciarGeo();
   agendarPromo();
   carregarConfigNuvem();
-  sincronizar();
-  setInterval(sincronizar, 1800000); // a cada 30 min (o botão 🔄 força na hora, se precisar)
+  sincronizarSupabase();               // viagem multi-motorista (por código/conta)
+  sincronizar();                       // feed n8n legado (ignora se a fonte for Supabase)
+  setInterval(sincronizar, 1800000);   // n8n: a cada 30 min
+  setInterval(sincronizarSupabase, 60000); // Supabase: a cada 1 min (atualiza quando chega e-mail)
 })();
